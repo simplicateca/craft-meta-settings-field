@@ -1,6 +1,6 @@
 <?php
 
-namespace simplicateca\selectplus\fields;
+namespace simplicateca\metasettings\fields;
 
 use craft\fields\data\MultiOptionsFieldData;
 use craft\fields\data\SingleOptionFieldData;
@@ -8,9 +8,9 @@ use craft\base\conditions\BaseMultiSelectConditionRule;
 use craft\fields\conditions\FieldConditionRuleTrait;
 use craft\fields\conditions\FieldConditionRuleInterface;
 
-use simplicateca\selectplus\helpers\ConfigHelper;
+use simplicateca\metasettings\helpers\ConfigHelper;
 
-class SelectPlusConditionRule extends BaseMultiSelectConditionRule implements FieldConditionRuleInterface
+class MetaSettingsConditionRule extends BaseMultiSelectConditionRule implements FieldConditionRuleInterface
 {
     use FieldConditionRuleTrait;
 

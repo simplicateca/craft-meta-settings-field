@@ -1,12 +1,12 @@
 {## Register Field in JS
 {---------------------------------------------------------------------------------------}
-    Let Selectize do its thing before registering with SelectPlus.js
+    Let Selectize do its thing before registering with MetaSettings.js
 {-------------------------------------------------------------------------------------##}
 {% macro registerjs( namespace, fieldid ) %}
     {% js %}
-        Craft.SelectPlusField
+        Craft.MetaSettingsField
             .waitfor('select#{{"#{namespace}-#{fieldid}"}}.selectized')
-            .then( ($select) => { Craft.SelectPlusField.setup( $select, '{{namespace}}' ) });
+            .then( ($select) => { Craft.MetaSettingsField.setup( $select, '{{namespace}}' ) });
     {% endjs %}
 {% endmacro %}
 {##
@@ -247,7 +247,7 @@
                 }
             }) }}
         {% case "color" %}
-            {% include "selectplus/fields/virtual.color" with {
+            {% include "metasettings/fields/virtual.color" with {
                 name        : field.name,
                 label       : field.label,
                 fieldClass  : field.fieldClass,

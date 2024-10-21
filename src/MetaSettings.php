@@ -1,5 +1,5 @@
 <?php
-namespace simplicateca\selectplus;
+namespace simplicateca\metasettings;
 
 use Craft;
 use craft\web\View;
@@ -11,23 +11,23 @@ use craft\events\RegisterTemplateRootsEvent;
 use yii\base\Event;
 use yii\base\InvalidConfigException;
 
-use simplicateca\selectplus\fields\SelectPlusField;
+use simplicateca\metasettings\fields\MetaSettingsField;
 
-class SelectPlus extends \craft\base\Plugin
+class MetaSettings extends \craft\base\Plugin
 {
-	public static SelectPlus $instance;
+	public static MetaSettings $instance;
 
 	public function __construct( $id, $parent = null, array $config = [] )
     {
         Event::on( View::class, View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS, function (RegisterTemplateRootsEvent $e) {
-            $e->roots['_selectplus'] = $this->getBasePath() . DIRECTORY_SEPARATOR . 'templates'  . DIRECTORY_SEPARATOR . 'samples';
+            $e->roots['_metasettings'] = $this->getBasePath() . DIRECTORY_SEPARATOR . 'templates'  . DIRECTORY_SEPARATOR . 'samples';
         });
 
         Event::on(
             View::class,
             View::EVENT_REGISTER_CP_TEMPLATE_ROOTS,
             function (RegisterTemplateRootsEvent $e) {
-                $e->roots['_selectplus'] = $this->getBasePath() . DIRECTORY_SEPARATOR . 'templates'  . DIRECTORY_SEPARATOR . 'samples';
+                $e->roots['_metasettings'] = $this->getBasePath() . DIRECTORY_SEPARATOR . 'templates'  . DIRECTORY_SEPARATOR . 'samples';
             }
         );
 
@@ -43,7 +43,7 @@ class SelectPlus extends \craft\base\Plugin
 
         // Register our field
         Event::on( Fields::class, Fields::EVENT_REGISTER_FIELD_TYPES, function ( RegisterComponentTypesEvent $event ) {
-            $event->types[] = SelectPlusField::class;
+            $event->types[] = MetaSettingsField::class;
         });
 
         // Load AssetBundle for Control Panel Requests
@@ -51,7 +51,7 @@ class SelectPlus extends \craft\base\Plugin
             Event::on( View::class, View::EVENT_BEFORE_RENDER_TEMPLATE, function ( TemplateEvent $event ) {
                 try {
                     Craft::$app->getView()->registerAssetBundle(
-                        \simplicateca\selectplus\assetbundles\selectplus\SelectPlusAssets::class
+                        \simplicateca\metasettings\assetbundles\metasettings\MetaSettingsAssets::class
                     );
                 } catch ( InvalidConfigException $e ) {
                     Craft::error( 'Error registering AssetBundle - '.$e->getMessage(), __METHOD__ );

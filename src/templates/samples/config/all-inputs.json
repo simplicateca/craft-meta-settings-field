@@ -7,8 +7,8 @@
         "inputabove": "These settings allow for **fine tuning the presentation** of the whatever content you're attaching this field to.",
         "inputbelow": "*Lorem ipsum dolor sit amet, consectetur adipiscing.*",
         "help"      : "Understanding the Search Component",
-        "helpurl"   : "https://github.com/simplicateca/craft-selectplus-field/blob/main/src/templates/selectplus.twig#L151",
-        "helptwig"  : "_selectplus/help/sample.twig"
+        "helpurl"   : "https://github.com/simplicateca/craft-metasettings-field/blob/main/src/templates/metasettings.twig#L151",
+        "helptwig"  : "_metasettings/help/sample.twig"
     },
     "settings": [],
     "virtuals": [

@@ -1,9 +1,9 @@
 <?php
 /**
- * Utility functions for managing SelectPlus JSON config files
+ * Utility functions for managing MetaSettings JSON config files
  */
 
-namespace simplicateca\selectplus\helpers;
+namespace simplicateca\metasettings\helpers;
 
 use Craft;
 

@@ -1,27 +1,27 @@
-/** SelectPlusField - Core Class
+/** MetaSettingsField - Core Class
 /---------------------------------------------------------------------------------------/
-    These functions communicate with any/all of the SelectPlus/Selectize instances that
+    These functions communicate with any/all of the MetaSettings/Selectize instances that
     exist on the page at any give time.
 
-    When a SelectPlus field is added to the UI, the `registerjs` macro adds a {% js %}
+    When a MetaSettings field is added to the UI, the `registerjs` macro adds a {% js %}
     call to `waitfor` Selectize to finish its thing before running out `setup()`
 
-    It also monitors each SelectPlus field for <option> changes and triggers the
+    It also monitors each MetaSettings field for <option> changes and triggers the
     `optchange()` function on the appropriate controller.
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField = typeof Craft.SelectPlusField === 'undefined' ? {} : Craft.SelectPlusField;
-Craft.SelectPlusField = {
+Craft.MetaSettingsField = typeof Craft.MetaSettingsField === 'undefined' ? {} : Craft.MetaSettingsField;
+Craft.MetaSettingsField = {
 
     icons: {},
     $controllers: {},
 
     setup(selectize, namespace) {
-        const $controller = new Craft.SelectPlusField.Controller(selectize, namespace)
+        const $controller = new Craft.MetaSettingsField.Controller(selectize, namespace)
         const $selectize  = $controller.selectize()
 
         if( $selectize.tagName == 'SELECT' ) {
             new MutationObserver(function(mutations) {
-                if( mutations[0].target ) Craft.SelectPlusField.changed( mutations[0].target )
+                if( mutations[0].target ) Craft.MetaSettingsField.changed( mutations[0].target )
             }).observe( $selectize, { childList: true } )
 
             this.blurfix($selectize)
@@ -80,18 +80,18 @@ Craft.SelectPlusField = {
 /---------------------------------------------------------------------------------------/
 
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField.Controller = Garnish.Base.extend({
+Craft.MetaSettingsField.Controller = Garnish.Base.extend({
 
     $spf: null,
     $button: null,
 
     init(elem, namespace) {
-        this.$spf = elem ? elem.closest('.selectplus-field') : null
+        this.$spf = elem ? elem.closest('.metasettings-field') : null
         if( this.$spf ) {
 
             this.$spf.setAttribute('data-namespace', namespace)
 
-            const $button = new Craft.SelectPlusField.Button(this)
+            const $button = new Craft.MetaSettingsField.Button(this)
 
             this.btngear().onclick    = function() { $button.inputmodal() }
             this.btngear().onkeypress = function(e) {
@@ -191,7 +191,7 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
     inputmodal() {
         const template = this.template( this.tagfor('virtuals') )
         if( template ) {
-            new Craft.SelectPlusField.VirtualInputs( this, {
+            new Craft.MetaSettingsField.VirtualInputs( this, {
                 html : this.inputhtml(),
                 title: template.dataset.title,
                 help: template.dataset.help,
@@ -207,7 +207,7 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
     helpmodal() {
         const template = this.template( this.tagfor('help') )
         if( template ) {
-            new Craft.SelectPlusField.HelpModal( this, {
+            new Craft.MetaSettingsField.HelpModal( this, {
                 html    : this.helphtml(),
                 title   : template.dataset.title,
                 helpurl : template.dataset.helpurl,
@@ -233,8 +233,8 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
                 $iconhome.querySelector('button.icon-picker--remove-btn').classList.remove('hidden')
                 $iconhome.querySelector('input[type=hidden]').value = currvals[fieldname]
 
-                if( Craft.SelectPlusField.icons[currvals[fieldname]] ?? null ) {
-                    $iconhome.querySelector('.icon-picker--icon').innerHTML = Craft.SelectPlusField.icons[currvals[fieldname]]
+                if( Craft.MetaSettingsField.icons[currvals[fieldname]] ?? null ) {
+                    $iconhome.querySelector('.icon-picker--icon').innerHTML = Craft.MetaSettingsField.icons[currvals[fieldname]]
                 }
 
             // no icon selected
@@ -404,7 +404,7 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
         const $icons = $form.querySelectorAll( '.icon-picker--icon' ) ?? null;
         if( $icons ) {
             Array.from($icons).forEach((icon) => {
-                Craft.SelectPlusField.icons[icon.getAttribute('title')] = icon.innerHTML
+                Craft.MetaSettingsField.icons[icon.getAttribute('title')] = icon.innerHTML
             });
         }
     },
@@ -457,7 +457,7 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
 /** Button Objects
 /---------------------------------------------------------------------------------------/
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField.Button = Garnish.Base.extend({
+Craft.MetaSettingsField.Button = Garnish.Base.extend({
     $control: null,
     init($control) { this.$control = $control },
     helpmodal()  { this.$control.helpmodal() },
@@ -469,7 +469,7 @@ Craft.SelectPlusField.Button = Garnish.Base.extend({
 /** Help Modal
 /---------------------------------------------------------------------------------------/
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField.HelpModal = Garnish.Modal.extend({
+Craft.MetaSettingsField.HelpModal = Garnish.Modal.extend({
 
     $control: null,
 
@@ -486,7 +486,7 @@ Craft.SelectPlusField.HelpModal = Garnish.Modal.extend({
 
         this.setSettings({}, Garnish.Modal.defaults);
 
-        this.$form = $('<form class="modal fitted selectplus-modal selectplus-help" />').appendTo(Garnish.$bod);
+        this.$form = $('<form class="modal fitted metasettings-modal metasettings-help" />').appendTo(Garnish.$bod);
 
         const $header = $('<div class="header" />').appendTo(this.$form);
         $('<h1>' + content.title + '</h1>').appendTo($header);
@@ -506,7 +506,7 @@ Craft.SelectPlusField.HelpModal = Garnish.Modal.extend({
         const $mainBtnGroup = $('<div class="buttons right"/>').appendTo($footer);
 
         if( content.helpurl ) {
-            $moreBtn = $('<a href="' + content.helpurl + '" target="_blank" class="btn submit">' + Craft.t('selectplus', 'More') + '</a>').appendTo($mainBtnGroup);
+            $moreBtn = $('<a href="' + content.helpurl + '" target="_blank" class="btn submit">' + Craft.t('metasettings', 'More') + '</a>').appendTo($mainBtnGroup);
             this.addListener($moreBtn, 'click', 'closing');
             this.addListener($moreBtn, 'keypress', function (e) {
                 if (e.key === 'Enter') { this.closing() }
@@ -551,7 +551,7 @@ Craft.SelectPlusField.HelpModal = Garnish.Modal.extend({
 /** Virtual Inputs Modal
 /---------------------------------------------------------------------------------------/
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField.VirtualInputs = Garnish.Modal.extend({
+Craft.MetaSettingsField.VirtualInputs = Garnish.Modal.extend({
 
     $control: null,
 
@@ -570,10 +570,10 @@ Craft.SelectPlusField.VirtualInputs = Garnish.Modal.extend({
             hideOnShadeClick: false,
         }, Garnish.Modal.defaults);
 
-        this.$form = $('<form class="modal fitted selectplus-modal selectplus-virtuals" accept-charset="UTF-8"/>').appendTo(Garnish.$bod);
+        this.$form = $('<form class="modal fitted metasettings-modal metasettings-virtuals" accept-charset="UTF-8"/>').appendTo(Garnish.$bod);
 
         // modal header
-        // todo: add a sidebar showing other selectplus fields in the same entry?
+        // todo: add a sidebar showing other metasettings fields in the same entry?
         const $header = $('<div class="header" />').appendTo(this.$form);
         $('<h1>' + content.title + '</h1>').appendTo($header);
         if( content.help == 'true' ) {
@@ -658,7 +658,7 @@ Craft.SelectPlusField.VirtualInputs = Garnish.Modal.extend({
             }
 
             // color picker fields
-            // -> craftcms/vendor/simplicateca/selectplus/src/templates/forms/color.twig
+            // -> craftcms/vendor/simplicateca/metasettings/src/templates/forms/color.twig
             if( attribute.startsWith('color') ) {
                 const colorfield = $virtuals[i].id.replace(/-field$/, '-container');
                 new Craft.ColorInput('#' + colorfield, { presets: [] });

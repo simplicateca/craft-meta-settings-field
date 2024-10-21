@@ -1,15 +1,15 @@
 <?php
 /**
- * SelectPlusData - Store the serialized field data
+ * MetaSettingsData - Store the serialized field data
  */
 
-namespace simplicateca\selectplus\fields;
+namespace simplicateca\metasettings\fields;
 
 use Craft;
-use simplicateca\selectplus\helpers\ConfigHelper;
+use simplicateca\metasettings\helpers\ConfigHelper;
 
 
-class SelectPlusData extends \craft\base\Model
+class MetaSettingsData extends \craft\base\Model
 {
     /**
      * @var string The value of the selected option
@@ -70,7 +70,7 @@ class SelectPlusData extends \craft\base\Model
     }
 
     /**
-     * Some times a SelectPlus field will get saved and for some reason none of the values
+     * Some times a MetaSettings field will get saved and for some reason none of the values
      * will come through. I *think* it has something to do with the way Selectize fields
      * are being loaded or flagged as dirty since -- as best as I can tell -- it only
      * happens when you save a field without interacting with it.
@@ -104,7 +104,7 @@ class SelectPlusData extends \craft\base\Model
         // keys that could be set inside the virtual inputs and use that to
         // prevent key poisoning / collison.
         //
-        // Since I wrote the above TODO I updated `SelectPlus.js` file and there
+        // Since I wrote the above TODO I updated `MetaSettings.js` file and there
         // is now a javascript approximation of this function that needs to be
         // run on the server side as well, so just copy that.
         //
@@ -141,7 +141,7 @@ class SelectPlusData extends \craft\base\Model
         return array_keys($keys) !== $keys;
     }
 
-    
+
     private function _defaults( $virtuals = [] ) {
 
         // do a first pass to get all the values
@@ -162,7 +162,7 @@ class SelectPlusData extends \craft\base\Model
                 // try really hard to set a default starting value
                 $options = $i['options'];
                 reset($options);
-                $firstopt = SelectPlusData::is_assoc( $i['options'] )
+                $firstopt = MetaSettingsData::is_assoc( $i['options'] )
                     ? key($options)
                     : collect( $i['options'] )->firstWhere( 'value' ) ?? [];
 

@@ -1,13 +1,13 @@
-{% import "selectplus/selectplus" as selectplus %}
+{% import "metasettings/metasettings" as metasettings %}
 {% import "_includes/forms" as forms %}
 
-{% set fieldid  = "selectplus#{random()}" %}
+{% set fieldid  = "metasettings#{random()}" %}
 {% set options  = options ?? [] %}
 {% set virtvals = value.json ?? {} | json_decode %}
 
 {## Primary Field Input Controls
 {-------------------------------------------------------------------------------------##}
-<div class="selectplus-field" data-field="{{ field.handle }}">
+<div class="metasettings-field" data-field="{{ field.handle }}">
     <div class="control">
 
         {% if options | length == 1 and options[0].type ?? null and options[0].type | lower == 'button' %}
@@ -18,7 +18,7 @@
             }) | attr({ class: 'selectized' }) }} {## psyche! ##}
 
             {% js %}
-                Craft.SelectPlusField.setup( document.querySelector('#{{ namespace }}-{{ fieldid }}') );
+                Craft.MetaSettingsField.setup( document.querySelector('#{{ namespace }}-{{ fieldid }}') );
             {% endjs %}
 
             <a class="btn btn-gear only" role="button" tabindex="0"><span>{{options[0].label}}</span></a>
@@ -35,7 +35,7 @@
                     highlight: false
                 }
             }) }}
-            {{ selectplus.registerjs( namespace|id, fieldid ) }}
+            {{ metasettings.registerjs( namespace|id, fieldid ) }}
 
             <a class="btn btn-gear" role="button" tabindex="0"></a>
         {% endif %}
@@ -52,6 +52,6 @@
 
 {## <template> content for modals & tooltips
 {-------------------------------------------------------------------------------------##}
-{{ selectplus.virtualmodals( namespace|id, field, options, virtvals ) }}
-{{ selectplus.helpmodals( namespace|id, field, options ) }}
-{{ selectplus.inlinetips( namespace|id, field, options ) }}
+{{ metasettings.virtualmodals( namespace|id, field, options, virtvals ) }}
+{{ metasettings.helpmodals( namespace|id, field, options ) }}
+{{ metasettings.inlinetips( namespace|id, field, options ) }}

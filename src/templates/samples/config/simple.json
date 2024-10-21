@@ -4,7 +4,7 @@
         "value": "one",
         "tooltips": {
             "inline": "Lorem ipsum about **option one**...",
-            "helptwig" : "_selectplus/help/sample.twig"
+            "helptwig" : "_metasettings/help/sample.twig"
         },
         "settings": {
             "fizz": true,
@@ -41,7 +41,7 @@
         "value": "two",
         "tooltips": {
             "inline": "Lorem ipsum about **option two**...",
-            "helptwig" : "_selectplus/help/sample.twig"
+            "helptwig" : "_metasettings/help/sample.twig"
         },
         "settings": {
             "fizz": false,
@@ -83,7 +83,7 @@
         "value": "three",
         "tooltips": {
             "inline": "Lorem ipsum about **option three**...",
-            "helptwig" : "_selectplus/help/sample.twig"
+            "helptwig" : "_metasettings/help/sample.twig"
         },
         "settings": {
             "buzz": ["one", "two"]

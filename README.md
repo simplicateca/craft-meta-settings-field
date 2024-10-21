@@ -1,8 +1,8 @@
-# SelectPlus - Craft CMS Custom Field
+# MetaSettings - Craft CMS Custom Field
 
-SelectPlus is a JSON configured, custom field type plugin for Craft CMS 5+. It field presents like a standard Craft CMS [Dropdown Field](https://craftcms.com/docs/5.x/reference/field-types/dropdown.html) which itself makes use of the [Selectize JS library](https://selectize.dev/).
+MetaSettings is a JSON configured, custom field type plugin for Craft CMS 5+. It field presents like a standard Craft CMS [Dropdown Field](https://craftcms.com/docs/5.x/reference/field-types/dropdown.html) which itself makes use of the [Selectize JS library](https://selectize.dev/).
 
-Hiding under the hood of SelectPlus are a bunch of features aimed at improving the overall content [Author Experience (AX)](https://www.amazon.com/Author-Experience-Bridging-technology-management/dp/1937434427) and developer templating experience in Twig.
+Hiding under the hood of MetaSettings are a bunch of features aimed at improving the overall content [Author Experience (AX)](https://www.amazon.com/Author-Experience-Bridging-technology-management/dp/1937434427) and developer templating experience in Twig.
 
 ![](https://i.imgur.com/YUtManY.png)
 
@@ -32,13 +32,15 @@ This early release version is not currently available on the Craft Plugin store,
 
 **Requires Craft CMS 5+**
 
-Run `composer require simplicateca/selectplus:5.0.4-beta` and then enable the plugin from "Settings > Plugins"
+Run `composer require "simplicateca/metasettings:^5.1" -w && php craft plugin/install metasettings` and then enable the plugin from "Settings > Plugins"
 
+
+composer require "vaersaagod/seomate:^3.1.1" -w && php craft plugin/install seomate
 
 
 ## Configuration
 
-Options for each SelectPlus field are stored in a JSON file within the Craft CMS `templates` folder rather than requiring them to be input via the Craft CMS Control Panel.
+Options for each MetaSettings field are stored in a JSON file within the Craft CMS `templates` folder rather than requiring them to be input via the Craft CMS Control Panel.
 
 That means, when you want to add, change, or remove options from a Dropdown, you can do so by editing a JSON file in your code editor, rather than having to go into the Control Panel and edit or re-save individual fields.
 
@@ -47,22 +49,22 @@ This is particularly useful for fields that are used across many Matrix Block ty
 
 ### Sample `.json` Files
 
-Sample JSON config files can be found in the plugins ['src/templates/samples' folder](https://github.com/simplicateca/craft-selectplus-field/tree/main/src/templates/samples/config).
+Sample JSON config files can be found in the plugins ['src/templates/samples' folder](https://github.com/simplicateca/craft-meta-settings-field/tree/main/src/templates/samples/config).
 
 Additionally, each file in that folder can be used in dev mode to demonstrate the fields capabilities and functionality:
 
- - `_selectplus/config/simple.json`
- - `_selectplus/config/all-inputs.json`
- - `_selectplus/config/button-only.json`
+ - `_metasettings/config/simple.json`
+ - `_metasettings/config/all-inputs.json`
+ - `_metasettings/config/button-only.json`
 
 
 ## Twig Templating
 
-Each option in a SelectPlus field allows for additional data to be associated with it that you can use in place of creating logic in Twig to match the value of a dropdown field.
+Each option in a MetaSettings field allows for additional data to be associated with it that you can use in place of creating logic in Twig to match the value of a dropdown field.
 
 Within the JSON configuration for a field, you can have an attribute called `settings` that allows for any number of key-value pairs (strings, arrays, etc) to be passed along into Twig.
 
-For example, if you had a SelectPlus field `fieldName` with this configuration:
+For example, if you had a MetaSettings field `fieldName` with this configuration:
 
 ```
 {
@@ -92,7 +94,7 @@ Because changes to the JSON file are immediately reflected in all instances of t
 
 While Craft CMS allows for us to associate instructions with each field, these only apply to the field as a whole, and not to individual option selected within a Dropdown.
 
-SelectPlus fields allow for the creation of inline documentation for each option, which can be accessed via tooltips, modals, or links to external resources.
+MetaSettings fields allow for the creation of inline documentation for each option, which can be accessed via tooltips, modals, or links to external resources.
 
 Modal content is loaded from a Twig file of your choice, and the Twig template can make use of
 dynamic information about the field and selected option to decide what kind of documentation to
@@ -103,7 +105,7 @@ display.
 
 ## Virtual Input Fields
 
-Like a regular Dropdown field, the SelectPlus field stores the value of the `<option>` selected by the user. However, it can also be used to store multiple additional inputs fields associated with each option.
+Like a regular Dropdown field, the MetaSettings field stores the value of the `<option>` selected by the user. However, it can also be used to store multiple additional inputs fields associated with each option.
 
 This can be useful for situations where the selected option has fine-tuning "follow-up questions", especially if the extra inputs are presentational rather than content model in nature, and likely don't warrant their own [Custom Field](https://craftcms.com/docs/5.x/system/fields.html).
 
@@ -128,19 +130,19 @@ Available input fields include:
 - Date
 - Time
 
-See [all-inputs.json](https://github.com/simplicateca/craft-selectplus-field/blob/main/src/templates/samples/config/all-inputs.json) for an example of how to configure each of these fields.
+See [all-inputs.json](https://github.com/simplicateca/craft-meta-settings-field/blob/main/src/templates/samples/config/all-inputs.json) for an example of how to configure each of these fields.
 
 
 ## Dynamic Configuration
 
-SelectPlus only suggests `.json` files when attempting to autocomplete the file path within the field configuration screen.
+MetaSettings only suggests `.json` files when attempting to autocomplete the file path within the field configuration screen.
 
-However, SelectPlus it is happy to accept any file type that can be parsed as a Twig template provided:
+However, MetaSettings it is happy to accept any file type that can be parsed as a Twig template provided:
 
 1) You enter the file path manually without the aid of autocomplete (the horror!)
 2) The file outputs a valid JSON array of options
 
-SelectPlus provides an `element` variable which can be accessed in any Twig tags or commands from within any SelectPlus config file (regardless of file extension).
+MetaSettings provides an `element` variable which can be accessed in any Twig tags or commands from within any MetaSettings config file (regardless of file extension).
 
 This `element` variable contains information about the element that the field is attached to, as well as that elements' owner (if applicable as in cases of matrix fields).
 
@@ -150,9 +152,9 @@ These are the fields that are available on the `element` variable:
 
 `element.type` - The handle for the [Entry Type](https://craftcms.com/docs/5.x/reference/element-types/entries.html#entry-types) associated with the direct element that the field is attached to (if applicable).
 
-Additionally, for cases where the SelectPlus field is attached to a Matrix block, the `element` variable will also contain an `owner` variable which contains the same fields as the `element` variable, but for the owner of the Matrix block.
+Additionally, for cases where the MetaSettings field is attached to a Matrix block, the `element` variable will also contain an `owner` variable which contains the same fields as the `element` variable, but for the owner of the Matrix block.
 
-This means that instead of configuring a SelectPlus field with a static `.json` file, you may consider some of the following techniques.
+This means that instead of configuring a MetaSettings field with a static `.json` file, you may consider some of the following techniques.
 
 
 ### Configuration with `.twig` instead of `.json`
@@ -299,7 +301,7 @@ e.g. **field-config.json**
 
 ## Button-Only mode
 
-It is also possible to tell a SelectPlus field to operate in **Button Only** mode where if can be configured with a single "option" with multiple virtual input fields which can be accessed by clicking on a button.
+It is also possible to tell a MetaSettings field to operate in **Button Only** mode where if can be configured with a single "option" with multiple virtual input fields which can be accessed by clicking on a button.
 
 The button uses the `label` from the single `<option>` as its text.
 
@@ -325,4 +327,4 @@ Brought to you by  [simplicate.ca](https://simplicate.ca)
 
 Thanks to the [Design Tokens](https://plugins.craftcms.com/designtokens?craft5) field by Trendy Minds and the [Matrix Field Preview](https://plugins.craftcms.com/matrix-field-preview?craft5) plugin by Feral for inspiration.
 
-[Bug reports welcome](https://github.com/simplicateca/craft-selectplus-field/issues).
+[Bug reports welcome](https://github.com/simplicateca/craft-meta-settings-field/issues).

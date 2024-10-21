@@ -1,14 +1,14 @@
 {% import "_includes/forms" as forms %}
 
 {{ forms.autosuggestField({
-    label: "JSON Config"|t('selectplus'),
-    instructions: "The relative path from your `cms/templates` directory"|t('selectplus'),
+    label: "JSON Config"|t('metasettings'),
+    instructions: "The relative path from your `cms/templates` directory"|t('metasettings'),
     id: 'configFile',
     class: ['ltr', 'template'],
     name: 'configFile',
     value: field.configFile ?? null,
     required: true,
-    placeholder: "_selectplus/config/simple.json",
+    placeholder: "_metasettings/config/simple.json",
     suggestions: [
         { data: options },
     ],
@@ -23,13 +23,13 @@
 <p>Try one of these file paths as the <strong>JSON Config</strong> to test out how the field works:</p>
 
 <ul>
-    <li><code>_selectplus/config/simple.json</code></li>
-    <li><code>_selectplus/config/all-inputs.json</code></li>
-    <li><code>_selectplus/config/button-only.json</code></li>
+    <li><code>_metasettings/config/simple.json</code></li>
+    <li><code>_metasettings/config/all-inputs.json</code></li>
+    <li><code>_metasettings/config/button-only.json</code></li>
 </ul>
 
 <p>
-    Additional <a href="https://github.com/simplicateca/craft-selectplus-field/tree/main/src/templates/samples/config" target="_blank">configuration
-    examples</a> and <a href="https://github.com/simplicateca/craft-selectplus-field/tree/main" target="_blank">documentation
+    Additional <a href="https://github.com/simplicateca/craft-metasettings-field/tree/main/src/templates/samples/config" target="_blank">configuration
+    examples</a> and <a href="https://github.com/simplicateca/craft-metasettings-field/tree/main" target="_blank">documentation
     available on Github</a>.
 </p>

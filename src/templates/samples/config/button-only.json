@@ -5,7 +5,7 @@
         "type" : "button",
         "tooltips": {
             "inline": "Click the button for **additional** config options",
-            "helptwig": "_selectplus/help/sample.twig"
+            "helptwig": "_metasettings/help/sample.twig"
         },
         "settings": {
             "fizz": true

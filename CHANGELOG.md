@@ -3,9 +3,13 @@
 All notable changes to the Select Plus Custom Field Plugin for Craft CMS will be
 documented in this file. This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Version 5.1.0] - 2024-10-21
+
+- Changed plugin name to 'MetaSettings' to better reflect its purpose vs. the field type it uses.
+
 ## [Version 5.0.5-beta] - 2024-08-20
 
-- Properly implemented namespaces on fields
+- Fixed field namespaces bug
 - Fixed bug where the virtual fields modal wasn't always properly updating internal fields.
 
 ## [Version 5.0.4-beta] - 2024-05-22
@@ -19,12 +23,12 @@ documented in this file. This project adheres to [Semantic Versioning](http://se
 
 - Added 'Button Only' mode to present as a button instead of a Selectize dropdown (to still allow for hidden virtual input fields).
 - Added the ability to toggle between Inputs & Help modals without first closing one (provided both exist).
-- Added a sample Twig file to demonstrate dynamic *Help Modal* contents. Available using the path `_selectplus/help/sample.twig` for the `tooltips.helptwig` setting.
+- Added a sample Twig file to demonstrate dynamic *Help Modal* contents. Available using the path `_metasettings/help/sample.twig` for the `tooltips.helptwig` setting.
 - Added help text to `templates/fields/settings.twig` that includes the paths to sample JSON config files which can be used for testing.
 - Added a handful of additiona `fieldClass` widths for tweaking virtual field layouts.
 - Added Markdown parsing within `tooltips` content (except `helpurl` and `helptwig` fields).
 - Refactored sample JSON configs to include new field types, help settings and button-only mode.
-- Refactored `...dist/js/SelectPlus.js` to make better use of Crafts Garnish library.
+- Refactored `...dist/js/MetaSettings.js` to make better use of Crafts Garnish library.
 - Refactored `templates/fields/dropdown.twig` to streamline modal/tooltips/buttons.
 - Fixed issue parsing current `json` values when evaluating transfer between primary field options.
 - Fixed issue defaulting lightswitch fields to start 'on' (if not toggled off).

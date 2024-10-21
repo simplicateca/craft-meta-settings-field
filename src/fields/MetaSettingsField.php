@@ -1,9 +1,9 @@
 <?php
 /**
- * SelectPlus Field
+ * MetaSettings Field
  */
 
-namespace simplicateca\selectplus\fields;
+namespace simplicateca\metasettings\fields;
 
 use Craft;
 use craft\base\Field;
@@ -11,10 +11,10 @@ use craft\base\ElementInterface;
 use craft\base\SortableFieldInterface;
 use craft\base\PreviewableFieldInterface;
 
-use simplicateca\selectplus\helpers\ConfigHelper;
-use simplicateca\selectplus\fields\SelectPlusData;
+use simplicateca\metasettings\helpers\ConfigHelper;
+use simplicateca\metasettings\fields\MetaSettingsData;
 
-class SelectPlusField extends Field implements PreviewableFieldInterface, SortableFieldInterface
+class MetaSettingsField extends Field implements PreviewableFieldInterface, SortableFieldInterface
 {
     public string $configFile = '';
     public ?string $columnType = null;
@@ -24,11 +24,11 @@ class SelectPlusField extends Field implements PreviewableFieldInterface, Sortab
     }
 
     public static function displayName(): string {
-		return Craft::t('selectplus', 'Dropdown (SelectPlus)');
+		return Craft::t('metasettings', 'Dropdown (MetaSettings)');
 	}
 
     protected function optionsSettingLabel(): string {
-        return Craft::t('selectplus', 'Options');
+        return Craft::t('metasettings', 'Options');
     }
 
 	public function getContentColumnType(): string {
@@ -42,11 +42,11 @@ class SelectPlusField extends Field implements PreviewableFieldInterface, Sortab
 	}
 
     public function getElementConditionRuleType(): array|string|null {
-        return \simplicateca\selectplus\fields\SelectPlusConditionRule::class;
+        return \simplicateca\metasettings\fields\MetaSettingsConditionRule::class;
     }
 
     public function getSettingsHtml(): ?string {
-		return Craft::$app->getView()->renderTemplate('selectplus/fields/settings', [
+		return Craft::$app->getView()->renderTemplate('metasettings/fields/settings', [
 			'field'   => $this,
 			'options' => ConfigHelper::findJsonFiles()
 		]); // autosuggest json files in the `templates` directory
@@ -64,7 +64,7 @@ class SelectPlusField extends Field implements PreviewableFieldInterface, Sortab
             array_unshift( $options, [ 'value' => $value->value, 'label' => '[UNAVAILABLE: ' . $value->value . ']', 'disabled' => true ] );
 		}
 
-        return Craft::$app->getView()->renderTemplate('selectplus/fields/dropdown', [
+        return Craft::$app->getView()->renderTemplate('metasettings/fields/dropdown', [
             'field' 	 => $this,
             'value' 	 => $value,
             'options' 	 => $options,
@@ -75,7 +75,7 @@ class SelectPlusField extends Field implements PreviewableFieldInterface, Sortab
 
 	public function normalizeValue( $value, ElementInterface $element = null ): mixed
     {
-        if( $value instanceof SelectPlusData ) {
+        if( $value instanceof MetaSettingsData ) {
             return $value;
         }
 
@@ -108,6 +108,6 @@ class SelectPlusField extends Field implements PreviewableFieldInterface, Sortab
         $data['config']  = $this->configFile;
         $data['element'] = $element;
 
-        return new SelectPlusData( $data );
+        return new MetaSettingsData( $data );
 	}
 }

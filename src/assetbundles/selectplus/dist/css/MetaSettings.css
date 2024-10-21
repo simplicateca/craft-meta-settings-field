@@ -1,30 +1,30 @@
 /**
- * selectplusfield - CSS
+ * metasettingsfield - CSS
  */
 
-.selectplus-field {
+.metasettings-field {
     display: flex;
     flex-direction: column;
 }
 
-.selectplus-field .control {
+.metasettings-field .control {
     display: flex;
     flex-direction: row;
     gap: 5px;
     align-items: flex-start;
 }
 
-.selectplus-modal .btn-help,
-.selectplus-field .btn-help {
+.metasettings-modal .btn-help,
+.metasettings-field .btn-help {
     height: 34px;
     min-width: 34px;
     max-width: 34px;
 }
 
-.selectplus-modal .btn-help,
-.selectplus-modal .btn-gear,
-.selectplus-field .btn-help,
-.selectplus-field .btn-gear {
+.metasettings-modal .btn-help,
+.metasettings-modal .btn-gear,
+.metasettings-field .btn-help,
+.metasettings-field .btn-gear {
     cursor: pointer;
     display: block;
     color: #33475b;
@@ -36,7 +36,7 @@
     background-image: linear-gradient(#fff,#fafafa);
 }
 
-.selectplus-field .btn-gear.only {
+.metasettings-field .btn-gear.only {
     background-color: #dfe5ec;
     background-image: linear-gradient(#dfe5ec,#dfe5ec);
     font-size: 14px;
@@ -44,16 +44,16 @@
     margin-bottom: 24px;
 }
 
-.selectplus-field .btn-gear.only span {
+.metasettings-field .btn-gear.only span {
     color: #3f4d5a;
     display: inline-flex;
     padding-right: 20px;
 }
 
-.selectplus-modal .btn-help:hover,
-.selectplus-modal .btn-gear:hover,
-.selectplus-field .btn-help:hover,
-.selectplus-field .btn-gear:hover {
+.metasettings-modal .btn-help:hover,
+.metasettings-modal .btn-gear:hover,
+.metasettings-field .btn-help:hover,
+.metasettings-field .btn-gear:hover {
     background-image: linear-gradient(#eee,#eaeaea);
     color: #316bea;
 
@@ -63,24 +63,24 @@
     }
 }
 
-.selectplus-modal .btn-gear::after,
-.selectplus-field .btn-gear::after {
+.metasettings-modal .btn-gear::after,
+.metasettings-field .btn-gear::after {
     content: "settings";
     position: relative;
     top: 1px;
     font-family: Craft,sans-serif;
 }
 
-.selectplus-modal .btn-help.disabled,
-.selectplus-field .btn-help.disabled {
+.metasettings-modal .btn-help.disabled,
+.metasettings-field .btn-help.disabled {
     color: #33475b;
     cursor: not-allowed;
     background-image: linear-gradient(#aaa,#b7b7b7) !important;
     opacity: 0.45;
 }
 
-.selectplus-modal .btn-help::after,
-.selectplus-field .btn-help::after {
+.metasettings-modal .btn-help::after,
+.metasettings-field .btn-help::after {
     content: '';
     position: absolute;
     display: block;
@@ -91,19 +91,19 @@
 }
 
 
-.selectplus-modal .btn-gear.disabled,
-.selectplus-field .btn-gear.disabled {
+.metasettings-modal .btn-gear.disabled,
+.metasettings-field .btn-gear.disabled {
     background-image: linear-gradient(#aaa,#b7b7b7) !important;
     opacity: 0.45;
 }
 
 
-.selectplus-field .tooltips {
+.metasettings-field .tooltips {
     margin: -12px 0 12px;
     max-width: 420px;
 }
 
-.selectplus-field .tip {
+.metasettings-field .tip {
     display: block;
     padding-left: 16px;
     font-size: 13px;
@@ -112,7 +112,7 @@
     position: relative;
 }
 
-.selectplus-field .tip::before {
+.metasettings-field .tip::before {
     content:'↳';
     position: absolute;
     left: 3px;
@@ -121,8 +121,8 @@
 
 
 
-form.modal.selectplus-help,
-form.modal.selectplus-virtuals {
+form.modal.metasettings-help,
+form.modal.metasettings-virtuals {
     max-height: 90vh;
 
     mark { background: #eee; }
@@ -130,8 +130,8 @@ form.modal.selectplus-virtuals {
     ul li { margin-bottom: 0.5em; }
 }
 
-form.modal.selectplus-help .header,
-form.modal.selectplus-virtuals .header {
+form.modal.metasettings-help .header,
+form.modal.metasettings-virtuals .header {
     display: flex;
     align-items: center;
     padding-top:12px;
@@ -139,14 +139,14 @@ form.modal.selectplus-virtuals .header {
 }
 
 
-form.modal.selectplus-help .header h1,
-form.modal.selectplus-virtuals .header h1 {
+form.modal.metasettings-help .header h1,
+form.modal.metasettings-virtuals .header h1 {
     padding-right: 64px;
     flex-grow: 1;
     line-height: 34px;
 }
 
-form.modal.selectplus-help .body {
+form.modal.metasettings-help .body {
     height: 100%;
     max-height: calc(100% - 100px);
     min-height: 180px;
@@ -156,20 +156,20 @@ form.modal.selectplus-help .body {
     max-width: 680px;
 }
 
-form.modal.selectplus-modal .body .settings-grid {
+form.modal.metasettings-modal .body .settings-grid {
     padding: 1rem 0;
     gap: 2rem;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-form.modal.selectplus-modal .body .settings-grid code {
+form.modal.metasettings-modal .body .settings-grid code {
     background: #eee;
     padding: 0.5rem;
     display: block;
 }
 
-form.modal.selectplus-virtuals .body {
+form.modal.metasettings-virtuals .body {
     height: 100%;
     max-height: calc(100% - 100px);
     min-height: 180px;
@@ -183,19 +183,19 @@ form.modal.selectplus-virtuals .body {
     max-width: 680px;
 }
 
-form.modal.selectplus-help .body p.intro,
-form.modal.selectplus-virtuals .body p.intro {
+form.modal.metasettings-help .body p.intro,
+form.modal.metasettings-virtuals .body p.intro {
     font-size: 15px;
     line-height: 1.5em;
 }
 
-form.modal.selectplus-help .body p.outro,
-form.modal.selectplus-virtuals .body p.outro {
+form.modal.metasettings-help .body p.outro,
+form.modal.metasettings-virtuals .body p.outro {
     font-size: 15px;
     line-height: 1.5em;
 }
 
-form.modal.selectplus-help .body .video {
+form.modal.metasettings-help .body .video {
     text-align: center;
     margin-bottom: 1.5rem;
     background: #e4edf6;
@@ -205,15 +205,15 @@ form.modal.selectplus-help .body .video {
     align-items: center;
 }
 
-form.modal.selectplus-help .body .video iframe {
+form.modal.metasettings-help .body .video iframe {
     margin: 0 auto;
 }
 
-form.modal.selectplus-virtuals .body.fields p.intro {
+form.modal.metasettings-virtuals .body.fields p.intro {
     margin-bottom: 0 !important;
 }
 
-form.modal.selectplus-virtuals .body .field {
+form.modal.metasettings-virtuals .body .field {
     margin: 0;
     width: 100%;
     min-width: 260px;
@@ -221,62 +221,62 @@ form.modal.selectplus-virtuals .body .field {
     flex-grow: 1;
 }
 
-form.modal.selectplus-virtuals .body .field .select {
+form.modal.metasettings-virtuals .body .field .select {
     width: 100%;
 }
 
-form.modal.selectplus-virtuals .body .field .select select {
+form.modal.metasettings-virtuals .body .field .select select {
     width: 100%;
 }
 
-form.modal.selectplus-help .body ul,
-form.modal.selectplus-virtuals .body ul {
+form.modal.metasettings-help .body ul,
+form.modal.metasettings-virtuals .body ul {
     list-style: disc;
     margin-left: 1rem;
 }
 
-form.modal.selectplus-virtuals .body .field.width-25 {
+form.modal.metasettings-virtuals .body .field.width-25 {
     max-width: calc(25% - 27px);
     min-width: calc(25% - 27px);
 }
 
-form.modal.selectplus-virtuals .body .field.width-30 {
+form.modal.metasettings-virtuals .body .field.width-30 {
     max-width: calc(30% - 18px);
     min-width: calc(30% - 18px);
 }
 
-form.modal.selectplus-virtuals .body .field.width-35 {
+form.modal.metasettings-virtuals .body .field.width-35 {
     max-width: calc(35% - 27px);
     min-width: calc(35% - 27px);
 }
 
-form.modal.selectplus-virtuals .body .field.width-70 {
+form.modal.metasettings-virtuals .body .field.width-70 {
     max-width: calc(70% - 18px);
     min-width: calc(70% - 18px);
 }
 
-form.modal.selectplus-virtuals .body .field.width-75 {
+form.modal.metasettings-virtuals .body .field.width-75 {
     max-width: calc(75% - 18px);
     min-width: calc(75% - 18px);
 }
 
-form.modal.selectplus-virtuals .body .field.width-50 {
+form.modal.metasettings-virtuals .body .field.width-50 {
     max-width: calc(50% - 18px);
     min-width: calc(50% - 18px);
 }
 
-form.modal.selectplus-virtuals .body .field.width-100 {
+form.modal.metasettings-virtuals .body .field.width-100 {
     max-width: 460px !important;
 }
 
-form.modal.selectplus-virtuals .body .field.hr {
+form.modal.metasettings-virtuals .body .field.hr {
     max-width: 100% !important;
     border-top: 1px solid #e5e5e5;
 }
 
 
-form.modal.selectplus-help .footer,
-form.modal.selectplus-virtuals .footer {
+form.modal.metasettings-help .footer,
+form.modal.metasettings-virtuals .footer {
     line-height: var(--lh) !important;
     align-items: center;
 
@@ -286,7 +286,7 @@ form.modal.selectplus-virtuals .footer {
 }
 
 
-/* form.modal.selectplus-help .footer .btn,
-form.modal.selectplus-virtuals .footer .btn {
+/* form.modal.metasettings-help .footer .btn,
+form.modal.metasettings-virtuals .footer .btn {
     height: var(--ui-control-height) !important;
 } */

@@ -1,6 +1,6 @@
 {
-    "name": "simplicateca/selectplus",
-    "description": "SelectPlus is a dropdown-like custom field plugin for Craft CMS 5+",
+    "name": "simplicateca/metasettings",
+    "description": "Meta Settings is a custom field plugin for Craft CMS 5+",
     "type": "craft-plugin",
     "keywords": ["craft-cms", "custom-field", "select", "select-field", "dropdown"],
     "license": "MIT",
@@ -10,21 +10,21 @@
     }],
     "support": {
         "email" : "info@simplicate.ca",
-        "issues": "https://github.com/simplicateca/craft-selectplus-field/issues?state=open",
-        "source": "https://github.com/simplicateca/craft-selectplus-field",
-        "docs"  : "https://github.com/simplicateca/craft-selectplus-field/blob/main/README.md"
+        "issues": "https://github.com/simplicateca/craft-meta-settings-field/issues?state=open",
+        "source": "https://github.com/simplicateca/craft-meta-settings-field",
+        "docs"  : "https://github.com/simplicateca/craft-meta-settings-field/blob/main/README.md"
     },
     "require": {
         "craftcms/cms": "^5.0.0"
     },
     "autoload": {
         "psr-4": {
-            "simplicateca\\selectplus\\": "src/"
+            "simplicateca\\metasettings\\": "src/"
         }
     },
     "extra": {
-        "name": "SelectPlus",
-        "handle": "selectplus",
-        "class": "simplicateca\\selectplus\\SelectPlus"
+        "name": "MetaSettings",
+        "handle": "metasettings",
+        "class": "simplicateca\\metasettings\\MetaSettings"
     }
 }
