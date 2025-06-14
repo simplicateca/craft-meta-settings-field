@@ -16,9 +16,7 @@ class MetaSettingsConditionRule extends BaseMultiSelectConditionRule implements 
 
     protected function options(): array
     {
-        $field = $this->field();
-        $options = ConfigHelper::options( $field->configFile );
-        return $options->all() ?? [];
+        return ConfigHelper::allowedValues( $this->field()->configFile );
     }
 
 

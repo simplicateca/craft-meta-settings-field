@@ -19,7 +19,7 @@
 {% macro inlinetips( namespace, field, options ) %}
     {% for opt in options %}
         {% set value  = opt.value ?? null %}
-        {% set inline = opt.tooltips.inline ?? null %}
+        {% set inline = opt.help.inline ?? null %}
         {% if value and inline %}
             <template
                 data-namespace="{{ namespace }}"
@@ -37,15 +37,16 @@
 {-------------------------------------------------------------------------------------##}
 {% macro helpmodals( namespace, field, options ) %}
     {% for opt in options %}
-        {% if opt.tooltips.helptwig ?? null %}
-            {% set helptitle = "Help for #{field.name} - #{opt.label}" %}
+        {% if opt.help.helptwig ?? null %}
+            {%- set helptitle = opt.help is string ? opt.help : "Help for #{field.name} - #{opt.label}" -%}
+            {%- set extraFields = collect( opt.settings ?? null ).firstWhere( 'type', '!=', 'hidden' ) ?? null -%}
             <template
                 data-namespace="{{ namespace }}"
-                data-title="{{ opt.tooltips.help ?? helptitle }}"
-                data-helpurl="{{ opt.tooltips.helpurl ?? null }}"
+                data-title="{{ opt.help.help ?? helptitle }}"
+                data-helpurl="{{ opt.help.helpurl ?? null }}"
                 data-name='{{ "#{field.handle}__#{opt.value}__help" | snake | lower }}'
-                data-virtuals="{{ opt.virtuals ?? null ? 'true' : 'false' }}"
-            >{{ include( opt.tooltips.helptwig ) }}</template>
+                data-virtuals="{{ extraFields ?? null ? 'true' : 'false' }}"
+            >{{ include( opt.help.helptwig ) }}</template>
         {% endif %}
     {% endfor %}
 {% endmacro %}
@@ -54,67 +55,72 @@
 
 {## Virtual Field Modal Templates
 {-------------------------------------------------------------------------------------##}
-{% macro virtualmodals( namespace, field, options, json ) %}
+{%- macro virtualmodals( namespace, field, options, json ) -%}
 
     {## decode JSON string if necessary ##}
-    {% set json = ( json is string ) ? json | json_decode : json %}
+    {%- set json = ( json is string ) ? json | json_decode : json -%}
 
-    {% import "_includes/forms" as forms %}
-    {% for opt in options %}
-        {% if opt.virtuals ?? null %}
-            {% set inputtitle = "Settings for #{field.name} - #{opt.label}" %}
+    {%- import "_includes/forms" as forms -%}
+
+    {%- for opt in options -%}
+
+        {%- set fields = collect(opt.settings).where('type', '!=', 'hidden' ) -%}
+        {%- if fields is not empty -%}
+            {%- set title = "Settings for #{field.name} - #{opt.label}" -%}
             <template
                 data-namespace="{{ namespace }}"
                 data-name='{{ "#{field.handle}__#{opt.value}__virtuals" | snake | lower }}'
-                data-title="{{ opt.tooltips.input ?? inputtitle }}"
-                data-help="{{ opt.tooltips.helptwig ?? null ? 'true' : 'false' }}"
+                data-title="{{ opt.help.input ?? title }}"
+                data-help="{{ opt.help.helptwig ?? null ? 'true' : 'false' }}"
             >
-                {% if opt.tooltips.inputabove ?? null %}<p class='intro'>{{ opt.tooltips.inputabove | markdown | retconChange( 'p', false ) }}</p>{% endif %}
-                {% for virt in opt.virtuals %}
-                    {% set currval = ( virt.name ?? null and json[virt.name] ?? null ) ? json[virt.name] : null %}
-                    {% set virt = loop.first and loop.last ? virt | merge({ _only: true }) : virt %}
-                    {{ _self.input( virt.type, virt, currval ) }}
+                {% if opt.help.inputabove ?? null %}<p class='intro'>{{ opt.help.inputabove | markdown | retconChange( 'p', false ) }}</p>{% endif %}
+
+                {% for input in fields.all() %}
+                    {{ _self.input( input, value: json[input.name] ?? null ) }}
+                    {# {%- set curval = ( virt.value ?? null and json[virt.name] ?? null ) ? json[virt.name] : null -%}
+                    {%- set virt = loop.first and loop.last ? virt | merge({ fieldClass: 'width-100' }) : virt -%} #}
                 {% endfor %}
-                {% if opt.tooltips.inputbelow ?? null %}<p class='outro'>{{ opt.tooltips.inputbelow | markdown | retconChange( 'p', false ) }}</p>{% endif %}
+
+                {% if opt.help.inputbelow ?? null %}<p class='outro'>{{ opt.help.inputbelow | markdown | retconChange( 'p', false ) }}</p>{% endif %}
             </template>
-        {% endif %}
-    {% endfor %}
-{% endmacro %}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endmacro -%}
 
 
 
 {## Individual Virtual Input Fields
 {-------------------------------------------------------------------------------------##}
-{% macro input( fieldtype, settings, currval ) %}
+{% macro input( settings, value = null ) %}
 
     {% set field = {
-        value        : currval ?? settings.value ?? settings.default ?? null,
-        name         : settings.name         ?? null,
-        label        : settings.label        ?? null | t('app'),
-        min          : settings.min          ?? null,
-        max          : settings.max          ?? null,
-        step         : settings.step         ?? null,
-        size         : settings.size         ?? null,
-        options      : settings.options      ?? [],
-        default      : settings.default      ?? null,
-        maxlength    : settings.maxlength    ?? 255,
-        fieldClass   : settings.fieldClass   ?? 'width-50',
-        placeholder  : settings.placeholder  ?? null | t('app'),
-        instructions : settings.instructions ?? null | t('app'),
+        type         : settings.type        ?? 'text',
+        name         : settings.name        ?? null,
+        label        : settings.label       ?? null,
+        min          : settings.min         ?? settings.number.min  ?? null,
+        max          : settings.max         ?? settings.number.max  ?? null,
+        step         : settings.step        ?? settings.number.step ?? null,
+        size         : settings.size        ?? null,
+        options      : settings.options     ?? [],
+        default      : settings.default     ?? settings.number.default ?? null,
+        maxlength    : settings.maxlength   ?? 255,
+        fieldClass   : settings.fieldClass  ?? 'width-50',
+        placeholder  : settings.placeholder ?? null,
+        instructions : settings.help        ?? null,
     } %}
 
-
-    {## If there's only a single field, make it full width in the modal ##}
-    {% set field = ( settings._only ?? false )
-            ? field | merge({ fieldClass: 'width-100' })
-            : field %}
-
+    {# {%- if settings.default is empty and settings.options is not empty -%}
+        {%- set field = field | merge({
+            default: settings.value ?? null,
+        }) -%}
+    {%- endif -%} #}
+    {# value : curval ?? settings.value ?? settings.default ?? null, #}
 
     {## Fix <lightswitch> value vs. on state ##}
-    {% if fieldtype == 'lightswitch' %}
+    {% if field.type|lower == 'lightswitch' %}
         {% set field = field | merge({
-            value: settings.value ?? '1',
-            on   : ( currval is null and field.default is not null ) ? field.default : currval,
+            value: value ?? '1',
+            on   : ( value is null and field.default is not null ) ? field.default : value,
         }) %}
     {% endif %}
 
@@ -144,7 +150,7 @@
             "microlayout" : "zone1Top__center"
         }]
     {-------------------------------------------------------------------------##}
-    {% if ( ( field.options | first ) is iterable ) %}
+    {# {% if ( ( field.options | first ) is iterable ) %}
         {% set field = field | merge({
             options: field.options|map(o => o.optgroup is defined ? o : {
                 label: o.label,
@@ -152,7 +158,7 @@
                 data : o | withoutKey(['value', 'label'])
             })})
         %}
-    {% endif %}
+    {% endif %} #}
 
 
 
@@ -160,21 +166,22 @@
     {-------------------------------------------------------------------------##}
     {% import "_includes/forms" as forms %}
 
-    {% switch fieldtype %}
+    {% switch field.type|lower %}
         {% case "lightswitch" %}
             {{ forms.lightswitchField({
                 name        : field.name,
                 label       : field.label,
-                value       : field.value,
+                value       : value,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
                 on          : field.on,
             }) }}
         {% case "select" %}
+            <h4>{{ value ?? null}}</h4>
             {{ forms.selectField({
                 name        : field.name,
                 label       : field.label,
-                value       : field.value,
+                value       : value,
                 options     : field.options,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
@@ -183,7 +190,7 @@
             {{ forms.radioGroupField({
                 name        : field.name,
                 label       : field.label,
-                value       : field.value,
+                value       : value,
                 options     : field.options,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
@@ -193,7 +200,7 @@
                 type        : 'number',
                 name        : field.name,
                 label       : field.label,
-                value       : field.value,
+                value       : value,
                 size        : field.size ?? 8,
                 min         : field.min,
                 max         : field.max,
@@ -206,7 +213,7 @@
             {{ forms.dateField({
                 name        : field.name,
                 label       : field.label,
-                value       : field.value,
+                value       : value,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
                 data: {
@@ -217,7 +224,7 @@
             {{ forms.timeField({
                 name        : field.name,
                 label       : field.label,
-                value       : field.value,
+                value       : value,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
                 data: {
@@ -228,7 +235,7 @@
             {{ forms.moneyField({
                 name        : field.name,
                 label       : field.label,
-                value       : field.value,
+                value       : value,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
                 data: {
@@ -239,7 +246,7 @@
             {{ forms.iconPickerField({
                 name        : field.name,
                 label       : field.label,
-                value       : field.value,
+                value       : value,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
                 data: {
@@ -260,7 +267,7 @@
             name        : field.name,
             label       : field.label,
             size        : field.size,
-            value       : field.value,
+            value       : value ?? field.default ?? null,
             maxlength   : field.maxlength,
             fieldClass  : field.fieldClass,
             placeholder : field.placeholder,

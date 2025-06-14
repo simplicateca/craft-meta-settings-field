@@ -342,29 +342,32 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
     },
 
     optchange() {
-        const modalname= 'virtuals'
-        const currjson = this.json()
-        const $inputs  = this.inputs(modalname)
-        const $fields  = this.fieldnames(modalname)
-        const defaults = this.serialize($inputs)
+    //     const modalname= 'virtuals'
+    //     // const currjson = this.json()
+    //     const $inputs  = this.inputs(modalname)
+    //     // const $fields  = this.fieldnames(modalname)
+    //     // const defaults = this.serialize($inputs)
 
-        // which fields from our current json exist in the modal $fields?
-        const portable = {};
-        Object.keys(currjson).forEach( name => {
-            if( $fields.includes(name) ) { portable[name] = currjson[name] }
-        })
+    //     console.log( this.json() )
+    //     console.log( $inputs )
 
-        // are the existing portable values (a) acceptable for each of their
-        // respectively names fields, and (b) do any of those fields have extra
-        // `settings` data associated with its newly ported value?
-        let transfer = {};
-        for( const key in portable ) {
-            transfer = Object.assign(transfer, this.inputdata(key, portable[key]) )
-        }
+    //     // which fields from our current json exist in the modal $fields?
+    //     // const portable = {};
+    //     // Object.keys(currjson).forEach( name => {
+    //     //     if( $fields.includes(name) ) { portable[name] = currjson[name] }
+    //     // })
 
-        // combine the valid transferable values with the new defaults
-        // and update the field json
-        this.update( Object.assign( defaults, transfer ) )
+    //     // // are the existing portable values (a) acceptable for each of their
+    //     // // respectively names fields, and (b) do any of those fields have extra
+    //     // // `settings` data associated with its newly ported value?
+    //     // let transfer = {};
+    //     // for( const key in portable ) {
+    //     //     transfer = Object.assign(transfer, this.inputdata(key, portable[key]) )
+    //     // }
+
+    //     // // combine the valid transferable values with the new defaults
+    //     // // and update the field json
+    //     // this.update( Object.assign( defaults, transfer ) )
 
         this.refresh()
     },

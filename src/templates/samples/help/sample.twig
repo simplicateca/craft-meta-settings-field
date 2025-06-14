@@ -69,7 +69,7 @@
         <h2>Configurable Settings</h2>
         <ul>
             {% for virt in opt.virtuals %}
-                <li><Strong>{{ virt.label }}</strong><br>{{ virt.instructions }}</li>
+                <li><Strong>{{ virt.label }}</strong><br>{{ virt.help }}</li>
             {% endfor %}
         </ul>
     {% endif %}

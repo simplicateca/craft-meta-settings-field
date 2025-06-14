@@ -6,57 +6,158 @@
 namespace simplicateca\metasettings\helpers;
 
 use Craft;
+use craft\base\Field;
+use craft\base\ElementInterface;
 
 class ConfigHelper
 {
 
-    public static function load( string $filename = null, mixed $element = null ): array {
+    public static function load( string|null $filename = null, mixed $element = null ): array {
 
-        if( !$filename ) { return []; }
+        if( !$filename ) { return ['error' => "No config file provided"]; }
 
-        // Tell Craft we don't want to render to the regular output right now
-        $view = Craft::$app->getView();
-		$templateMode = $view->getTemplateMode();
-		$view->setTemplateMode($view::TEMPLATE_MODE_SITE);
+        $jsonString = Craft::$app->getView()->renderString(
+            ConfigHelper::twigIncludeStatement($filename),
+            ConfigHelper::normalizeElement($element),
+            Craft::$app->getView()::TEMPLATE_MODE_SITE
+        );
 
-        // Force the config to render as an array rather than risk it being a single object.
-        // Its easy enough to pull the inner array out and move on with life than risk throwing errors.
-        $jsonEncodedOptions = '[' . $view->renderString(
-            ConfigHelper::getConfigInclude( $filename ),
-            ConfigHelper::minimize( $element )
-        ) . ']';
+        $config = \craft\helpers\Json::decodeIfJson( $jsonString, true );
 
-        // Decode the the json and make sure we don't have a nested array situation per the above comment
-        $options = json_decode( $jsonEncodedOptions, true );
-        $options = is_array( $options[0][0] ?? null ) ? $options[0] : $options;
+        // If there was a problem decoding the JSON, return an error message
+        if( json_last_error() !== JSON_ERROR_NONE || !is_array($config) ) {
+            return [ 'error' => json_last_error_msg(), 'string' => $jsonString ];
+        }
 
-        // Tell Craft to return to whatever template render mode it was in before
-        $view->setTemplateMode($templateMode);
+        return self::parseConfig( $config );
+    }
 
-        return $options ? $options : [];
+    // Transforms either of these formats:
+    //   { opt1: { label: "Opt1" }, opt2: { label: "Opt2" }, ... }
+    //   { opt1: "Opt1", opt2: "Opt2", ... }
+    // into:
+    //   [ { value: "opt1", label: "Opt1" }, { value: "opt2", label: "Opt2" }, ... ]
+    public static function parseConfig( $object = [] ): array {
+        $array = ( array_is_list($object) )
+            ? $object
+            : array_map(
+                fn($key, $value) => is_array($value)
+                    ? ['value' => $key] + $value
+                    : ['value' => $key],
+                array_keys($object),
+                $object
+            );
+
+        // Only return $options with a minimum of `$idField` field
+        return array_values( array_map(
+            fn($item) => [
+                'label' => $item['label'] ?? $item['value'] ?? null,
+                'value' => $item['value'] ?? $item['label'] ?? null,
+                'settings' => $item['settings'] ?? false
+                    ? self::parseSettings($item['settings'])
+                    : null,
+            ] + $item,
+            array_filter($array, fn($item) => isset($item['value']) || isset($item['label']) )
+        ) );
     }
 
 
-    // return all options as a "value => name" pair for a file path or an existing options array
-    public static function options( $source = null ): object {
-        $options = is_array( $source ) ? $source : ConfigHelper::load( $source );
+    // Transforms either of these formats:
+    //   { opt1: { label: "Opt1" }, opt2: { label: "Opt2" }, ... }
+    //   { opt1: "Opt1", opt2: "Opt2", ... }
+    // into:
+    //   [ { value: "opt1", label: "Opt1" }, { value: "opt2", label: "Opt2" }, ... ]
+    public static function parseSettings( $object = [] ): array {
+        $array = ( array_is_list($object) )
+            ? $object
+            : array_map(
+                fn($key, $value) => is_array($value)
+                    ? ['name' => $key] + $value
+                    : ['name' => $key, 'value' => $value],
+                array_keys($object),
+                $object
+            );
+
+        return array_values( array_map(
+            fn($item) => [
+                'label'   => $item['label'] ?? $item['name'],
+                'type'    => self::settingType($item),
+                'options' => self::parseOptions( $item['options'] ?? $item['select'] ?? $item['radiogroup'] ?? null ),
+            ] + $item,
+            array_filter($array, fn($item) => isset($item['name']))
+        ) );
+    }
+
+
+    public static function parseOptions( $options = [] ): array {
+        $options = $options ?? [];
+        $options = ( $options && array_is_list($options) )
+            ? $options
+            : array_map(
+                fn($key, $value) => is_array($value)
+                    ? ['value' => $key] + $value
+                    : ['value' => $key, 'label' => $value],
+                array_keys($options),
+                $options
+            );
+
+        return array_values( array_map(
+            fn($item) => [
+                'label' => $item['label'] ?? $item['value'] ?? null,
+                'value' => $item['value'] ?? $item['label'] ?? null
+            ] + $item,
+            array_filter($options, fn($item) => isset($item['value']) || isset($item['label']) )
+        ) );
+    }
+
+
+    public static function settingType( $setting ): string {
+        $types = [
+            'text', 'textarea', 'number', 'email', 'url', 'lightswitch',
+            'icon', 'select', 'radiogroup', 'money', 'color', 'date', 'time'
+        ];
+
+        if( is_array($setting) && isset($setting['value']) ) {
+            return 'hidden';
+        }
+
+        if( is_array($setting) && isset($setting['type']) && in_array(strtolower($setting['type']), $types) ) {
+            return strtolower( $setting['type'] );
+        }
+
+        if( is_array($setting) ) {
+            foreach( $types as $type ) {
+                if( isset($setting[$type]) && !empty($setting[$type]) ) {
+                    return strtolower( $type );
+                }
+            }
+        }
+
+        return 'text';
+    }
+
+
+    // return all options as a "value => label" pair for a file path or an existing options array
+    public static function allowedValues( $source = null ): array {
+        $options = is_array( $source )
+            ? $source
+            : ConfigHelper::load( $source, [] );
+
+        if( $options['error'] ?? false ) {
+            return [];
+        }
+
         return collect( $options )
-            ->filter(function ($item) {
-                return array_key_exists('value', $item);
-            })
-            ->mapWithKeys( function ($item, $key) {
-			    return [$item['value'] => $item['label']];
-		    }
-        );
+            ->mapWithKeys( fn($i) => [$i['value'] => $i['label']] )
+            ->all();
     }
 
 
     // return a single option hash by key value
     public static function option( $source = null, $value = null ): mixed {
-        $options = is_array( $source ) ? $source : ConfigHelper::load( $source );
-        return array_filter($options, function ($item) use ($value) {
-            return $item['value'] === $value;
-        })[0] ?? null;
+        $allowed = collect( self::allowedValues( $source ) );
+        return $allowed->firstWhere( 'value', $value )
+            ?? $allowed->first();
     }
 
 
@@ -65,7 +166,7 @@ class ConfigHelper
 
         $configFiles = \craft\helpers\FileHelper::findFiles(
             Craft::getAlias("@templates"),
-            [ 'only' => ['*.json', '*.json.twig']
+            [ 'only' => ["*.json", "*.twig"]
         ]);
 
 		return
@@ -77,39 +178,33 @@ class ConfigHelper
             ->all();
     }
 
-    private static function getConfigInclude( string $filename ): string {
+    private static function twigIncludeStatement( string $filename ): string {
         $sanitized = trim( preg_replace('/[{}%]/', '', $filename, -1) );
-        return "{% include '{$sanitized}' ignore missing %}";
+        return "{{- include( '{$sanitized}', ignore_missing = true ) | trim -}}";
     }
 
 
-    public static function minimize( $element = null ): array {
+    public static function normalizeElement( ElementInterface|array|null $element = null ): array {
 
         if( !$element ) { return []; }
-
-        if( is_array( $element ) ) {
-            return $element;
-        }
+        if( is_array($element) ) { return $element; }
 
         // find the overall owner of this field (if it's different from the immediate element)
         // i.e. is this field attached directly to an entry element or is it part of a matrix
         // or a super table field that is itself attached to an entry element?
         $owner = $element->primaryOwner ?? $element;
 
-        $subname = $element->type->name   ?? $element->volume->name   ?? $element->site->name   ?? null;
-        $subtype = $element->type->handle ?? $element->volume->handle ?? $element->site->handle ?? null;
-
         return [
-            'name'    => $subname,
-            'type'    => $subtype,
-            'field'   => $element->field->handle ?? null,
-            'element' => (string) get_class( $element ),
-            'owner'   => [
-                'site'    => $owner->site->handle    ?? null,
+            'name'  => $element->type->name   ?? $element->volume->name   ?? $element->site->name   ?? null,
+            'type'  => $element->type->handle ?? $element->volume->handle ?? $element->site->handle ?? null,
+            'field' => $element->field->handle ?? null,
+            'owner' => [
+                'id'      => $owner->id ?? null,
                 'type'    => $owner->type->handle    ?? null,
-                'level'   => $owner->level           ?? null,
                 'section' => $owner->section->handle ?? null,
-                'element' => (string) get_class( $owner ),
+                'volume'  => $owner->volume->handle  ?? null,
+                'level'   => $owner->level           ?? null,
+                'site'    => $owner->site->handle    ?? null,
             ],
         ];
     }

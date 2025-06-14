@@ -1,57 +1,72 @@
-{% import "metasettings/metasettings" as metasettings %}
-{% import "_includes/forms" as forms %}
+{%- import "metasettings/metasettings" as metasettings -%}
+{%- import "_includes/forms" as forms -%}
 
-{% set fieldid  = "metasettings#{random()}" %}
-{% set options  = options ?? [] %}
-{% set virtvals = value.json ?? {} | json_decode %}
+{%- set fieldid  = "metasettings#{random()}" -%}
+{%- set options  = options ?? [] -%}
+{%- set debug = false -%}
 
 {## Primary Field Input Controls
 {-------------------------------------------------------------------------------------##}
 <div class="metasettings-field" data-field="{{ field.handle }}">
-    <div class="control">
+    {% if options is not empty %}
+        <div class="control">
+            {%- set firstType = options[0].type ?? null -%}
+            {% if options|length == 1 and firstType|lower == 'button' %}
+                {{ forms.hidden({
+                    id   : fieldid,
+                    name : "#{field.handle}[value]",
+                    value: options[0].value,
+                }) | attr({ class: 'selectized' }) }}
 
-        {% if options | length == 1 and options[0].type ?? null and options[0].type | lower == 'button' %}
-            {{ forms.hidden({
-                id   : fieldid,
-                name : "#{field.handle}[value]",
-                value: options[0].value,
-            }) | attr({ class: 'selectized' }) }} {## psyche! ##}
+                {% js %}
+                    Craft.MetaSettingsField.setup( document.querySelector('#{{ namespace }}-{{ fieldid }}') );
+                {% endjs %}
 
-            {% js %}
-                Craft.MetaSettingsField.setup( document.querySelector('#{{ namespace }}-{{ fieldid }}') );
-            {% endjs %}
+                <a class="btn btn-gear only" role="button" tabindex="0"><span>{{options[0].label}}</span></a>
+            {% else %}
 
-            <a class="btn btn-gear only" role="button" tabindex="0"><span>{{options[0].label}}</span></a>
-        {% else %}
+                {{ forms.selectizeField({
+                    id     : fieldid,
+                    name   : "#{field.handle}[value]",
+                    options: options,
+                    errors : deprecated ? ["Option no longer unavailable."|t] : false,
+                    class  : 'selectize',
+                    value  : value.value,
+                    selectizeOptions: {
+                        highlight: false
+                    }
+                }) }}
+                {{ metasettings.registerjs( namespace|id, fieldid ) }}
 
-            {{ forms.selectizeField({
-                id     : fieldid,
-                name   : "#{field.handle}[value]",
-                options: options ?? [],
-                errors : deprecated ? ["Option no longer unavailable."|t] : false,
-                class  : 'selectize',
-                value  : value.value,
-                selectizeOptions: {
-                    highlight: false
-                }
-            }) }}
-            {{ metasettings.registerjs( namespace|id, fieldid ) }}
+                <a class="btn btn-gear" role="button" tabindex="0"></a>
+            {% endif %}
+            <a class="btn btn-help" role="button" tabindex="0"></a>
+            {{ forms.hidden({ name: "#{field.handle}[json]", value: value.json }) }}
+        </div>
+        <div class="tooltips"></div>
 
-            <a class="btn btn-gear" role="button" tabindex="0"></a>
-        {% endif %}
-        <a class="btn btn-help" role="button" tabindex="0"></a>
-        {{ forms.hidden({ name: "#{field.handle}[json]", value: value.json }) }}
-    </div>
-
-    {% if not options | length %}
-        <p class="error">Uh-oh! Looks like something is a misconfigured. Chat with your CMS admin.</p>
+        {%- if debug and craft.app.config.general.devMode -%}
+            <div class="flex flex-col items-start">
+                <strong>JSON Config</strong>
+                <textarea style="width:100%; height: 60px; border: 1px solid">{{ options | json_encode }}</textarea>
+                <a href="https://jsonlint.com/?json={{ options | json_encode | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
+            </div>
+        {%- endif -%}
+    {%- else -%}
+        <div class="error flex flex-col items-start">
+            {%- if craft.app.config.general.devMode -%}
+                <strong>{{ "JSON Parse Error"|t }}</strong>
+                <textarea style="width:100%; height: 60px; border: 1px solid">{{ error.string ?? null }}</textarea>
+                <a href="https://jsonlint.com/?json={{ error.string | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
+            {%- else -%}
+                <strong>{{ "No options available"|t }}</strong>
+            {%- endif -%}
+        </div>
     {% endif %}
-
-    <div class="tooltips"></div>
 </div>
 
 {## <template> content for modals & tooltips
 {-------------------------------------------------------------------------------------##}
-{{ metasettings.virtualmodals( namespace|id, field, options, virtvals ) }}
-{{ metasettings.helpmodals( namespace|id, field, options ) }}
-{{ metasettings.inlinetips( namespace|id, field, options ) }}
+{{ metasettings.virtualmodals( namespace|id, field, options, value.settings ) }}
+{# {{ metasettings.helpmodals( namespace|id, field, options ) }}
+{{ metasettings.inlinetips( namespace|id, field, options ) }} #}

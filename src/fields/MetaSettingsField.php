@@ -37,7 +37,7 @@ class MetaSettingsField extends Field implements PreviewableFieldInterface, Sort
 
 	public function getTableAttributeHtml( $value, ElementInterface $element = null ): string {
 		return ucwords(
-			preg_replace('/(?<!\ )[A-Z]/', ' $0', ( $value->value ?? $value['value'] ?? $value ?? null ) )
+			preg_replace('/(?<!\ )[A-Z]/', ' $0', ( $value->label ?? $value->value ?? $value ) )
 		);
 	}
 
@@ -52,28 +52,32 @@ class MetaSettingsField extends Field implements PreviewableFieldInterface, Sort
 		]); // autosuggest json files in the `templates` directory
 	}
 
-	public function getInputHtml( mixed $value, ElementInterface $element = null ): string
+	public function getInputHtml(mixed $value, ?craft\base\ElementInterface $element): string
     {
-        $options = $value->config == $this->configFile
-            ? $value->options
-            : ConfigHelper::load( $this->configFile, $element );
+        // $options = $value->config == $this->configFile
+        //     ? $value->options
+        //     : ConfigHelper::load( $this->configFile, $element );
+
+        $options = ConfigHelper::load( $this->configFile, $element );
 
 		// when we load an option that no longer exists in the field configuration
-        $deprecated = ( $value->value && !empty($value->value) && !in_array( $value->value, array_column( $options, 'value' ) ) );
-        if( $deprecated ) {
-            array_unshift( $options, [ 'value' => $value->value, 'label' => '[UNAVAILABLE: ' . $value->value . ']', 'disabled' => true ] );
-		}
+        // $deprecated = ( $value->value && !empty($value->value) && !in_array( $value->value, array_column( $options, 'value' ) ) );
+        // if( $deprecated ) {
+        //     array_unshift( $options, [ 'value' => $value->value, 'label' => '[UNAVAILABLE: ' . $value->value . ']', 'disabled' => true ] );
+		// }
 
         return Craft::$app->getView()->renderTemplate('metasettings/fields/dropdown', [
             'field' 	 => $this,
             'value' 	 => $value,
-            'options' 	 => $options,
-			'deprecated' => $deprecated,
+            'options' 	 => $options['error'] ?? null ? [] : $options,
+            'error' 	 => $options['error'] ?? null ? $options : null,
+            'deprecated' => null,
             'namespace'  => Craft::$app->getView()->getNamespace()
 		]);
 	}
 
-	public function normalizeValue( $value, ElementInterface $element = null ): mixed
+
+	public function normalizeValue(mixed $value, ?craft\base\ElementInterface $element): mixed
     {
         if( $value instanceof MetaSettingsData ) {
             return $value;
@@ -81,21 +85,21 @@ class MetaSettingsField extends Field implements PreviewableFieldInterface, Sort
 
         $data = [
             'value' => '',
-            'json'  => '{}',
+            'json'  => '{}'
         ];
 
         if( !empty($value) ) {
 
-            if( \is_string($value) ) {
-                $jsonValue = \craft\helpers\Json::decodeIfJson($value);
+            if( is_string($value) ) {
+                $json = \craft\helpers\Json::decodeIfJson($value);
 
-                if( \is_string($jsonValue) ) {
-                    $data['value'] = $jsonValue;
+                if( is_string($json) ) {
+                    $data['value'] = $value;
                 }
 
-                if( \is_array($jsonValue) ) {
-                    $value = ( !array_diff_key($data, $jsonValue) && !array_diff_key($jsonValue, $data) )
-                        ? $jsonValue
+                if( is_array($json) ) {
+                    $value = ( !array_diff_key($data, $json) && !array_diff_key($json, $data) )
+                        ? $json
                         : [ 'value' => $value ];
                 }
             }
@@ -108,6 +112,6 @@ class MetaSettingsField extends Field implements PreviewableFieldInterface, Sort
         $data['config']  = $this->configFile;
         $data['element'] = $element;
 
-        return new MetaSettingsData( $data );
+        return new MetaSettingsData( $data ) ?? null;
 	}
 }
