@@ -177,11 +177,10 @@
                 on          : field.on,
             }) }}
         {% case "select" %}
-            <h4>{{ value ?? null}}</h4>
             {{ forms.selectField({
                 name        : field.name,
                 label       : field.label,
-                value       : value,
+                value       : value ?? field.options[0].value ?? null,
                 options     : field.options,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
@@ -200,7 +199,7 @@
                 type        : 'number',
                 name        : field.name,
                 label       : field.label,
-                value       : value,
+                value       : value ?? field.default ?? null,
                 size        : field.size ?? 8,
                 min         : field.min,
                 max         : field.max,
@@ -213,7 +212,7 @@
             {{ forms.dateField({
                 name        : field.name,
                 label       : field.label,
-                value       : value,
+                value       : value ?? field.default ?? null,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
                 data: {
@@ -224,7 +223,7 @@
             {{ forms.timeField({
                 name        : field.name,
                 label       : field.label,
-                value       : value,
+                value       : value ?? field.default ?? null,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
                 data: {
@@ -235,7 +234,7 @@
             {{ forms.moneyField({
                 name        : field.name,
                 label       : field.label,
-                value       : value,
+                value       : value ?? field.default ?? null,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
                 data: {
@@ -256,6 +255,7 @@
         {% case "color" %}
             {% include "metasettings/fields/virtual.color" with {
                 name        : field.name,
+                value       : value ?? field.default ?? null,
                 label       : field.label,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,

@@ -56,8 +56,11 @@
         <div class="error flex flex-col items-start">
             {%- if craft.app.config.general.devMode -%}
                 <strong>{{ "JSON Parse Error"|t }}</strong>
-                <textarea style="width:100%; height: 60px; border: 1px solid">{{ error.string ?? null }}</textarea>
-                <a href="https://jsonlint.com/?json={{ error.string | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
+                {{ dump( options ) }}
+                {%- if error.string ?? null -%}
+                    <textarea style="width:100%; height: 60px; border: 1px solid">{{ error.string }}</textarea>
+                    <a href="https://jsonlint.com/?json={{ error.string | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
+                {%- endif -%}
             {%- else -%}
                 <strong>{{ "No options available"|t }}</strong>
             {%- endif -%}

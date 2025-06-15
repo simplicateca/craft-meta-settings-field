@@ -16,7 +16,11 @@ class MetaSettingsConditionRule extends BaseMultiSelectConditionRule implements 
 
     protected function options(): array
     {
-        return ConfigHelper::allowedValues( $this->field()->configFile );
+        $config = empty( $this->field()->configFile )
+            ? $this->field()->configJson
+            : $this->field()->configFile;
+
+        return ConfigHelper::allowedValues( $config );
     }
 
 

@@ -1,20 +1,72 @@
-{% import "_includes/forms" as forms %}
+{%- import "_includes/forms" as forms -%}
+{%- import 'codeeditor/codeEditor.twig' as codeEditor -%}
 
-{{ forms.autosuggestField({
-    label: "JSON Config"|t('metasettings'),
-    instructions: "The relative path from your `cms/templates` directory"|t('metasettings'),
-    id: 'configFile',
-    class: ['ltr', 'template'],
+{%- set editorConfig = {
+    attr: {
+        label: 'JSON Config'|t,
+        name : 'configJson',
+        placeholder: "{\n  \n}",
+        value: field.configJson ?? null
+    },
+    monaco: {
+        language: 'json'
+    }
+} -%}
+
+{# instructions: 'Define custom [config options]({link}) which should be merged with the default config.'|t('ckeditor', {
+    link: 'https://ckeditor.com/docs/ckeditor5/latest/api/module_core_editor_editorconfig-EditorConfig.html',
+}), #}
+
+{%- set fileSelectorConfig = {
+    label: "JSON File Path"|t,
     name: 'configFile',
     value: field.configFile ?? null,
-    required: true,
-    placeholder: "_metasettings/config/simple.json",
-    suggestions: [
-        { data: options },
-    ],
-}) }}
+    suggestions: [{ data: options }],
+} -%}
 
+{%- set mode = field.configFile is empty ? 'code' : 'file' -%}
+{%- set isCode = mode == 'code' -%}
+{%- set isFile = mode == 'file' -%}
+
+<div id="config-toggle">
+    <section class="btngroup btngroup--exclusive small" aria-label="{{ 'Configuration method'|t }}">
+    {{ tag('button', {
+        type: 'button',
+        class: ['btn', 'small', isCode ? 'active']|filter,
+        aria: {pressed: isCode ? 'true'}|filter,
+        data: {mode: 'code'},
+        text: 'JSON',
+    }) }}
+    {{ tag('button', {
+        type: 'button',
+        class: ['btn', 'small', isFile ? 'active' : null]|filter,
+        aria: {pressed: isFile ? 'true'}|filter,
+        data: {mode: 'file'},
+        text: 'File',
+    }) }}
+    </section>
+</div>
 <br>
+
+{{- tag( 'div', {
+    id: 'config-toggle-file-container',
+    class: isFile ? [] : ['hidden'],
+    html: forms.autosuggestField( fileSelectorConfig )
+}) -}}
+
+{{- tag( 'div', {
+    id: 'config-toggle-code-container',
+    class: isCode ? [] : ['hidden'],
+    html: codeEditor.textareaField( editorConfig.attr, monacoOptions: editorConfig.monaco )
+}) -}}
+
+
+{% js %}
+    new Craft.MetaSettingsField.ConfigToggle( "{{ craft.app.view.namespaceInputId('config-toggle') }}" )
+{% endjs %}
+
+
+{# <br>
 <hr>
 <br>
 
@@ -32,4 +84,4 @@
     Additional <a href="https://github.com/simplicateca/craft-metasettings-field/tree/main/src/templates/samples/config" target="_blank">configuration
     examples</a> and <a href="https://github.com/simplicateca/craft-metasettings-field/tree/main" target="_blank">documentation
     available on Github</a>.
-</p>
+</p> #}

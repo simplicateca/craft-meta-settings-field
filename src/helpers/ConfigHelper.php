@@ -12,21 +12,30 @@ use craft\base\ElementInterface;
 class ConfigHelper
 {
 
-    public static function load( string|null $filename = null, mixed $element = null ): array {
+    public static function load( string|null $input = null, mixed $element = null ): array {
 
-        if( !$filename ) { return ['error' => "No config file provided"]; }
+        if( !$input ) { return [ 'error' => "No field configuration provided", "string" => $input ]; }
 
-        $jsonString = Craft::$app->getView()->renderString(
-            ConfigHelper::twigIncludeStatement($filename),
-            ConfigHelper::normalizeElement($element),
-            Craft::$app->getView()::TEMPLATE_MODE_SITE
-        );
+        $config = \craft\helpers\Json::decodeIfJson( $input, true );
 
-        $config = \craft\helpers\Json::decodeIfJson( $jsonString, true );
+        // could not parse json, so assume it's a file path
+        if( is_string( $config ) ) {
+            $jsonString = Craft::$app->getView()->renderString(
+                ConfigHelper::twigIncludeStatement($input),
+                ConfigHelper::normalizeElement($element),
+                Craft::$app->getView()::TEMPLATE_MODE_SITE
+            );
 
-        // If there was a problem decoding the JSON, return an error message
-        if( json_last_error() !== JSON_ERROR_NONE || !is_array($config) ) {
-            return [ 'error' => json_last_error_msg(), 'string' => $jsonString ];
+            $config = \craft\helpers\Json::decodeIfJson( $jsonString, true );
+
+            // If there was a problem decoding the JSON, return an error message
+            if( json_last_error() !== JSON_ERROR_NONE || !is_array($config) ) {
+                return [ 'error' => json_last_error_msg(), 'string' => $jsonString ];
+            }
+        }
+
+        if( !is_array( $config ) ) {
+            return [ 'error' => "Invalid field configuration format: expected an array or a valid JSON string, got " . gettype($config), "string" => $input ];
         }
 
         return self::parseConfig( $config );
@@ -138,10 +147,8 @@ class ConfigHelper
 
 
     // return all options as a "value => label" pair for a file path or an existing options array
-    public static function allowedValues( $source = null ): array {
-        $options = is_array( $source )
-            ? $source
-            : ConfigHelper::load( $source, [] );
+    public static function allowedValues( $source = null, $element = null ): array {
+        $options = ConfigHelper::load( $source, $element );
 
         if( $options['error'] ?? false ) {
             return [];

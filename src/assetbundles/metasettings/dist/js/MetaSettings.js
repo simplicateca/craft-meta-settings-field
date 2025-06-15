@@ -75,6 +75,33 @@ Craft.MetaSettingsField = {
 };
 
 
+Craft.MetaSettingsField.ConfigToggle = Garnish.Base.extend({
+    mode: null,
+    init(namespace) {
+        var _this = this
+        var ns = '#' + namespace
+        document.querySelector(ns + '-code-container').classList.contains("hidden")
+            ? this.mode = "file"
+            : this.mode = "code"
+
+        new Craft.Listbox( $(ns).children(".btngroup"), {
+            onChange: function(e) {
+                switch (_this.mode = e.data("mode"), _this.mode) {
+                    case "code":
+                        document.querySelector(ns + '-code-container').classList.remove("hidden")
+                        document.querySelector(ns + '-file-container').classList.add("hidden")
+                        break;
+                    case "file":
+                        document.querySelector(ns + '-file-container').classList.remove("hidden")
+                        document.querySelector(ns + '-code-container').classList.add("hidden")
+                        break;
+                }
+            }
+        })
+    }
+});
+
+
 
 /** Individual Field Controller
 /---------------------------------------------------------------------------------------/
@@ -342,36 +369,8 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
     },
 
     optchange() {
-    //     const modalname= 'virtuals'
-    //     // const currjson = this.json()
-    //     const $inputs  = this.inputs(modalname)
-    //     // const $fields  = this.fieldnames(modalname)
-    //     // const defaults = this.serialize($inputs)
-
-    //     console.log( this.json() )
-    //     console.log( $inputs )
-
-    //     // which fields from our current json exist in the modal $fields?
-    //     // const portable = {};
-    //     // Object.keys(currjson).forEach( name => {
-    //     //     if( $fields.includes(name) ) { portable[name] = currjson[name] }
-    //     // })
-
-    //     // // are the existing portable values (a) acceptable for each of their
-    //     // // respectively names fields, and (b) do any of those fields have extra
-    //     // // `settings` data associated with its newly ported value?
-    //     // let transfer = {};
-    //     // for( const key in portable ) {
-    //     //     transfer = Object.assign(transfer, this.inputdata(key, portable[key]) )
-    //     // }
-
-    //     // // combine the valid transferable values with the new defaults
-    //     // // and update the field json
-    //     // this.update( Object.assign( defaults, transfer ) )
-
         this.refresh()
     },
-
 
     refresh() {
         if( this.template( this.tagfor('virtuals') ) ) {

@@ -17,6 +17,7 @@ use simplicateca\metasettings\fields\MetaSettingsData;
 class MetaSettingsField extends Field implements PreviewableFieldInterface, SortableFieldInterface
 {
     public string $configFile = '';
+    public string $configJson = '';
     public ?string $columnType = null;
 
     public static function icon(): string {
@@ -47,18 +48,18 @@ class MetaSettingsField extends Field implements PreviewableFieldInterface, Sort
 
     public function getSettingsHtml(): ?string {
 		return Craft::$app->getView()->renderTemplate('metasettings/fields/settings', [
-			'field'   => $this,
-			'options' => ConfigHelper::findJsonFiles()
+			'field'     => $this,
+			'options'   => ConfigHelper::findJsonFiles()
 		]); // autosuggest json files in the `templates` directory
 	}
 
 	public function getInputHtml(mixed $value, ?craft\base\ElementInterface $element): string
     {
-        // $options = $value->config == $this->configFile
-        //     ? $value->options
-        //     : ConfigHelper::load( $this->configFile, $element );
+        $config = empty( $this->configFile )
+            ? ( empty( $this->configJson ) ? '{}' : $this->configJson )
+            : $this->configFile;
 
-        $options = ConfigHelper::load( $this->configFile, $element );
+        $options = ConfigHelper::load( $config, $element );
 
 		// when we load an option that no longer exists in the field configuration
         // $deprecated = ( $value->value && !empty($value->value) && !in_array( $value->value, array_column( $options, 'value' ) ) );
@@ -109,8 +110,11 @@ class MetaSettingsField extends Field implements PreviewableFieldInterface, Sort
             }
         }
 
-        $data['config']  = $this->configFile;
         $data['element'] = $element;
+        $data['config']  = empty( $this->configFile )
+            ? ( empty( $this->configJson ) ? '{}' : $this->configJson )
+            : $this->configFile;
+
 
         return new MetaSettingsData( $data ) ?? null;
 	}
