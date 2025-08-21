@@ -1,70 +1,101 @@
 {%- import "_includes/forms" as forms -%}
 {%- import 'codeeditor/codeEditor.twig' as codeEditor -%}
 
-{%- set editorConfig = {
+{%- set jsonEditor = {
     attr: {
         label: 'JSON Config'|t,
         name : 'configJson',
         placeholder: "{\n  \n}",
         value: field.configJson ?? null
     },
-    monaco: {
-        language: 'json'
-    }
+    monaco: { language: 'json' }
 } -%}
 
-{# instructions: 'Define custom [config options]({link}) which should be merged with the default config.'|t('ckeditor', {
-    link: 'https://ckeditor.com/docs/ckeditor5/latest/api/module_core_editor_editorconfig-EditorConfig.html',
-}), #}
+{%- set twigEditor = {
+    attr: {
+        label: 'Twig Config'|t,
+        name : 'configTwig',
+        instructions: 'Use Twig to render the JSON config dynamically.'|t,
+        placeholder: '{{- { option1: "Label 1", option2: "Label 2" } | json_encode -}}',
+        value: field.configTwig ?? null
+    },
+    monaco: { language: 'twig' }
+} -%}
 
-{%- set fileSelectorConfig = {
+{%- set fileSelector = {
     label: "JSON File Path"|t,
     name: 'configFile',
     value: field.configFile ?? null,
     suggestions: [{ data: options }],
 } -%}
 
-{%- set mode = field.configFile is empty ? 'code' : 'file' -%}
-{%- set isCode = mode == 'code' -%}
+{%- set mode = field.mode ?? null -%}
+{%- set mode = mode ? mode : field.configFile is empty
+    ? field.configJson is empty
+        ? 'twig'
+        : 'json'
+    : 'file' -%}
+
+{%- set isJson = mode == 'json' -%}
 {%- set isFile = mode == 'file' -%}
+{%- set isTwig = mode == 'twig' -%}
 
 <div id="config-toggle">
     <section class="btngroup btngroup--exclusive small" aria-label="{{ 'Configuration method'|t }}">
+    {{ forms.hidden({
+        id: 'config-toggle-mode',
+        value: mode,
+        name: 'mode',
+    }) }}
+
     {{ tag('button', {
         type: 'button',
-        class: ['btn', 'small', isCode ? 'active']|filter,
-        aria: {pressed: isCode ? 'true'}|filter,
-        data: {mode: 'code'},
-        text: 'JSON',
+        class: ['btn', 'small', isJson ? 'active']|filter,
+        aria: {pressed: isJson ? 'true'}|filter,
+        data: {mode: 'json'},
+        text: 'JSON Code',
     }) }}
+
+    {{ tag('button', {
+        type: 'button',
+        class: ['btn', 'small', isTwig ? 'active' : null]|filter,
+        aria: {pressed: isTwig ? 'true'}|filter,
+        data: {mode: 'twig'},
+        text: 'Twig Code',
+    }) }}
+
     {{ tag('button', {
         type: 'button',
         class: ['btn', 'small', isFile ? 'active' : null]|filter,
         aria: {pressed: isFile ? 'true'}|filter,
         data: {mode: 'file'},
-        text: 'File',
+        text: 'Template',
     }) }}
     </section>
 </div>
 <br>
 
 {{- tag( 'div', {
-    id: 'config-toggle-file-container',
-    class: isFile ? [] : ['hidden'],
-    html: forms.autosuggestField( fileSelectorConfig )
+    id: 'config-toggle-json-container',
+    class: isJson ? [] : ['hidden'],
+    html: codeEditor.textareaField( jsonEditor.attr, monacoOptions: jsonEditor.monaco )
 }) -}}
 
 {{- tag( 'div', {
-    id: 'config-toggle-code-container',
-    class: isCode ? [] : ['hidden'],
-    html: codeEditor.textareaField( editorConfig.attr, monacoOptions: editorConfig.monaco )
+    id: 'config-toggle-twig-container',
+    class: isTwig ? [] : ['hidden'],
+    html: codeEditor.textareaField( twigEditor.attr, monacoOptions: twigEditor.monaco )
 }) -}}
 
+{{- tag( 'div', {
+    id: 'config-toggle-file-container',
+    class: isFile ? [] : ['hidden'],
+    html: forms.autosuggestField( fileSelector )
+}) -}}
 
 {% js %}
-    new Craft.MetaSettingsField.ConfigToggle( "{{ craft.app.view.namespaceInputId('config-toggle') }}" )
+    new Craft.MetaSettingsField.ConfigToggle( "{{ craft.app.view.namespaceInputId('config-toggle') }}", "{{mode}}" )
 {% endjs %}
-
 
 {# <br>
 <hr>

@@ -15,20 +15,25 @@ Craft.MetaSettingsField = {
     icons: {},
     $controllers: {},
 
-    setup(selectize, namespace) {
-        const $controller = new Craft.MetaSettingsField.Controller(selectize, namespace)
-        const $selectize  = $controller.selectize()
+    setup(field, namespace) {
+        const $controller = new Craft.MetaSettingsField.Controller(field, namespace)
 
-        if( $selectize.tagName == 'SELECT' ) {
+        const $selectize = $controller.selectize()
+        if( $selectize && $selectize.tagName == 'SELECT' ) {
             new MutationObserver(function(mutations) {
                 if( mutations[0].target ) Craft.MetaSettingsField.changed( mutations[0].target )
             }).observe( $selectize, { childList: true } )
 
             this.blurfix($selectize)
-        }
 
-        const fieldid = $selectize.id ?? null
-        this.$controllers[fieldid] = $controller
+            if( $selectize.id ?? null ) {
+                this.$controllers[$selectize.id] = $controller
+            }
+        } else {
+            if( field.id ?? null ) {
+                this.$controllers[field.id] = $controller
+            }
+        }
     },
 
     changed(selectize) {
@@ -77,23 +82,40 @@ Craft.MetaSettingsField = {
 
 Craft.MetaSettingsField.ConfigToggle = Garnish.Base.extend({
     mode: null,
-    init(namespace) {
+    lastTwigVal: null,
+    lastJsonVal: null,
+    lastFileVal: null,
+    init(namespace, mode) {
         var _this = this
         var ns = '#' + namespace
-        document.querySelector(ns + '-code-container').classList.contains("hidden")
-            ? this.mode = "file"
-            : this.mode = "code"
+
+        this.mode = mode ?? 'json'
+
+        var $json = document.querySelector(ns + '-json-container')
+        var $twig = document.querySelector(ns + '-twig-container')
+        var $file = document.querySelector(ns + '-file-container')
 
         new Craft.Listbox( $(ns).children(".btngroup"), {
             onChange: function(e) {
                 switch (_this.mode = e.data("mode"), _this.mode) {
-                    case "code":
-                        document.querySelector(ns + '-code-container').classList.remove("hidden")
-                        document.querySelector(ns + '-file-container').classList.add("hidden")
+                    case "json":
+                        $twig.classList.add("hidden")
+                        $file.classList.add("hidden")
+                        $json.classList.remove("hidden")
+                        document.querySelector(ns + '-mode').value = 'json'
+
                         break;
                     case "file":
-                        document.querySelector(ns + '-file-container').classList.remove("hidden")
-                        document.querySelector(ns + '-code-container').classList.add("hidden")
+                        $json.classList.add("hidden")
+                        $twig.classList.add("hidden")
+                        $file.classList.remove("hidden")
+                        document.querySelector(ns + '-mode').value = 'file'
+                        break;
+                    case "twig":
+                        $json.classList.add("hidden")
+                        $file.classList.add("hidden")
+                        $twig.classList.remove("hidden")
+                        document.querySelector(ns + '-mode').value = 'twig'
                         break;
                 }
             }
@@ -111,9 +133,13 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
 
     $spf: null,
     $button: null,
+    $elem: null,
 
     init(elem, namespace) {
         this.$spf = elem ? elem.closest('.metasettings-field') : null
+        this.$elem = elem ?? null
+        // console.log( "Closest Meta Settings Field" )
+        // console.log( elem.closest('.metasettings-field') )
         if( this.$spf ) {
 
             this.$spf.setAttribute('data-namespace', namespace)
@@ -125,10 +151,12 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
                 if (e.key === 'Enter') { $button.inputmodal() }
             }
 
-            this.btnhelp().onclick    = function() { $button.helpmodal()  }
-            this.btnhelp().onkeypress = function(e) {
-                if (e.key === 'Enter') { $button.helpmodal() }
-            }
+            // this.btnhelp().onclick    = function() { $button.helpmodal()  }
+            // this.btnhelp().onkeypress = function(e) {
+            //     if (e.key === 'Enter') { $button.helpmodal() }
+            // }
+
+            // console.log( "Tag for Virtuals: " + this.tagfor('virtuals') )
 
             this.refresh()
 
@@ -149,7 +177,11 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
     },
 
     value() {
-        return this.selectize()?.value ?? null
+        if ( this.selectize() ) {
+            return this.selectize().value
+        } else {
+            return this.$elem.value ?? null
+        }
     },
 
     btngear() {
@@ -277,18 +309,30 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
     setvalues(domref) {
         const currvals = this.json()
         for( const key in currvals ) {
-            const input = domref.querySelector(`[name$="[${key}]"]`)
+            const input = domref.querySelector(`[name$="[${key}][]"]`)
+                       ?? domref.querySelector(`[name$="[${key}]"]`);
+
             if( input ) {
                 const parent = input.parentNode
 
-                // don't set select value unless an option for it exists
-                if( input.tagName === 'SELECT' ) {
+                // Multi-select fields
+                if (input.tagName === 'SELECT' && input.multiple) {
+                    const values = (Array.isArray(currvals[key]) ? currvals[key] : [currvals[key]])
+                    .map(v => String(v)); // Ensure string comparison
+
+                    for (const option of input.options) {
+                        const selected = values.includes(option.value);
+                        option.selected = selected;
+                    }
+
+                // Single select fields
+                } else if (input.tagName === 'SELECT') {
                     const optionExists = Array.from(input.options).some(option => option.value === currvals[key]);
                     if( optionExists ) {
                         input.value = currvals[key];
                     }
 
-                // set radio options as checked
+                // Radio Buttons
                 } else if( input.tagName === 'INPUT' && input.type === 'radio' ) {
                     if( input.value === currvals[key] ) {
                         input.checked = true;
@@ -296,8 +340,7 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
                         input.checked = false;
                     }
 
-                // don't reset the value for lightswitch, it should already be set, right?
-                // but we do add the on class if the value is not empty
+                // Lightswitch
                 } else if( parent.classList.contains('lightswitch') ) {
                     if( currvals[key] && currvals[key] != "" ) {
                         parent.classList.add('on');
@@ -307,7 +350,7 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
                         parent.setAttribute('aria-checked', 'false');
                     }
 
-                // all the other field types
+                // All other input types
                 } else { input.value = currvals[key]; }
 
             }
@@ -334,8 +377,11 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
 
 
     inputdata( fieldname, value ) {
-        let input = this.inputhtml().querySelector(`[name$="[\[fields\]${fieldname}]"]`)
-                 ?? this.inputhtml().querySelector(`[name$="fields[${fieldname}]"]`);
+        // Try to select the actual input/select element, including those with trailing []
+        let input = this.inputhtml().querySelector(`[name="fields[${fieldname}][]"]`)
+                 ?? this.inputhtml().querySelector(`[name="fields[${fieldname}]"]`)
+                 ?? this.inputhtml().querySelector(`[name$="[fields][${fieldname}][]"]`)
+                 ?? this.inputhtml().querySelector(`[name$="[fields][${fieldname}]"]`);
 
         if( input && input.type == 'radio' ) {
             const $inputs = this.inputhtml().querySelectorAll(`[name$="[\[fields\]${fieldname}]"]`)
@@ -348,20 +394,29 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
         }
 
         if( input ) {
-
             const parent = input.parentNode
-
             let data = {}
-            if( input.tagName === 'SELECT' ) {
+
+            // Multi-select
+            if (input.tagName === 'SELECT' && input.multiple) {
+                const selectedValues = Array.from(input.selectedOptions).map(opt => opt.value);
+                data[fieldname] = selectedValues;
+
+            // Single select
+            } else if (input.tagName === 'SELECT') {
                 const opt = Array.from(input.options).find(option => option.value === value);
-                if( opt ) {
-                    data = opt.dataset ?? {}
-                    data[fieldname] = opt.value
+                if (opt) {
+                    data = opt.dataset ?? {};
+                    data[fieldname] = opt.value;
                 }
-            } else if( input.tagName === 'INPUT' && parent.classList.contains('lightswitch') ) {
+
+            // Lightswitch
+            } else if (input.tagName === 'INPUT' && parent.classList.contains('lightswitch')) {
                 data[fieldname] = parent.classList.contains('on') ? input.value : '';
+
+            // All other inputs
             } else {
-                data[fieldname] = input.value
+                data[fieldname] = input.value;
             }
 
             return data
@@ -373,6 +428,7 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
     },
 
     refresh() {
+        //console.log( this.tagfor('virtuals') )
         if( this.template( this.tagfor('virtuals') ) ) {
             this.btngear()?.classList.remove( 'disabled' );
         } else {
@@ -385,15 +441,18 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
             this.btnhelp()?.classList.add( 'disabled' );
         }
 
-        const tip = this.template( this.tagfor('inline') )
-        this.tooltips().innerHTML = ( tip )
-            ? tip.content.querySelector('span').outerHTML
-            : ''
+        if( this.template( this.tagfor('inline') ) ) {
+            const tip = this.template( this.tagfor('inline') )
+            this.tooltips().innerHTML = ( tip )
+                ? tip.content.querySelector('span').outerHTML
+                : ''
+        }
     },
 
 
     save( $form ) {
         if( $form[0] ?? null ) {
+            //console.log( $form[0].querySelectorAll('input, select, textarea') )
             this.update( this.serialize( $form[0].querySelectorAll('input, select, textarea') ) )
             this.saveicons( $form[0] )
         }
@@ -412,46 +471,66 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
     },
 
 
-    serialize( fields ) {
+    serialize(fields) {
         let values = {};
-        if( !fields || !fields.length ) { return values; }
+        if (!fields || !fields.length) return values;
 
-        fields.forEach( (input) => {
-            if( input.name ) {
-                const parent = input.parentNode
-                const $field = parent.closest('.field[data-attribute]')
-                const match  = input.name.match(/\[([^[\]]+)\]$/)
-                if( match ) {
-                    if( input.tagName === 'INPUT' && parent.classList.contains('lightswitch') ) {
-                        values[match[1]] = parent.classList.contains('on') ? input.value : '';
-                    } else if( input.tagName === 'INPUT' && parent.classList.contains('money-container') ) {
-                        values[$field.dataset.name] = input.value;
-                    } else if( input.tagName === 'INPUT' && parent.classList.contains('datewrapper') ) {
-                        if( input.name.endsWith('][locale]') || input.name.endsWith('][timezone]') ) {
-                        } else {
-                            values[$field.dataset.name] = input.value
-                        }
-                    } else if( input.tagName === 'INPUT' && parent.classList.contains('timewrapper') ) {
-                        if( input.name.endsWith('][locale]') || input.name.endsWith('][timezone]') ) {
-                        } else {
-                            values[$field.dataset.name] = input.value
-                        }
-                    } else if( input.tagName === 'SELECT' ) {
-                        const option = Object.assign({}, input.options[input.selectedIndex].dataset ?? null )
-                        values[match[1]] = input.value;
-                        values = Object.assign({}, values, option);
-                    } else {
-                        if( input.name.endsWith('][locale]') || input.name.endsWith('][timezone]') ) {
-                        } else {
-                            values[match[1]] = input.value;
-                        }
-                    }
+        fields.forEach((input) => {
+            if (!input.name) return;
+
+            const parent = input.parentNode;
+            const $field = parent.closest('.field[data-attribute]');
+            const match = input.name.match(/\[([^[\]]+)\](\[\])?$/);
+            if (!match) return;
+
+            const fieldKey = match[1];
+
+            // Lightswitch
+            if (input.tagName === 'INPUT' && parent.classList.contains('lightswitch')) {
+                values[fieldKey] = parent.classList.contains('on') ? input.value : '';
+
+            // Money field container
+            } else if (input.tagName === 'INPUT' && parent.classList.contains('money-container')) {
+                values[$field.dataset.name] = input.value;
+
+            // Date wrapper
+            } else if (input.tagName === 'INPUT' && parent.classList.contains('datewrapper')) {
+                if (!input.name.endsWith('][locale]') && !input.name.endsWith('][timezone]')) {
+                    values[$field.dataset.name] = input.value;
+                }
+
+            // Time wrapper
+            } else if (input.tagName === 'INPUT' && parent.classList.contains('timewrapper')) {
+                if (!input.name.endsWith('][locale]') && !input.name.endsWith('][timezone]')) {
+                    values[$field.dataset.name] = input.value;
+                }
+
+            // Select (including multiselect)
+            } else if (input.tagName === 'SELECT') {
+                // console.log( 'here' )
+                // console.log( input )
+                if (input.multiple) {
+                    const selectedValues = Array.from(input.selectedOptions).map(opt => opt.value);
+                    // console.log( 'multiples' )
+                    // console.log( selectedValues )
+                    values[fieldKey] = selectedValues;
+                } else {
+                    const option = Object.assign({}, input.options[input.selectedIndex]?.dataset ?? {});
+                    values[fieldKey] = input.value;
+                    values = Object.assign({}, values, option);
+                }
+
+            // Generic input (excluding locale/timezone metadata)
+            } else {
+                if (!input.name.endsWith('][locale]') && !input.name.endsWith('][timezone]')) {
+                    values[fieldKey] = input.value;
                 }
             }
-        } );
+        });
 
         return values;
     },
+
 });
 
 

@@ -2,13 +2,23 @@
 {---------------------------------------------------------------------------------------}
     Let Selectize do its thing before registering with MetaSettings.js
 {-------------------------------------------------------------------------------------##}
-{% macro registerjs( namespace, fieldid ) %}
+{% macro registerSelectize( namespace, fieldid ) %}
     {% js %}
         Craft.MetaSettingsField
             .waitfor('select#{{"#{namespace}-#{fieldid}"}}.selectized')
             .then( ($select) => { Craft.MetaSettingsField.setup( $select, '{{namespace}}' ) });
     {% endjs %}
 {% endmacro %}
+
+
+{% macro registerButton( namespace, fieldid ) %}
+    {% js %}
+        console.log( document.querySelector('input#{{"#{namespace}-#{fieldid}"}}') )
+        console.log( 'input#{{"#{namespace}-#{fieldid}"}}' )
+        Craft.MetaSettingsField.setup( document.querySelector('input#{{"#{namespace}-#{fieldid}"}}'), '{{namespace}}' )
+    {% endjs %}
+{% endmacro %}
+
 {##
 {-------------------------------------------------------------------------------------##}
 
@@ -19,13 +29,13 @@
 {% macro inlinetips( namespace, field, options ) %}
     {% for opt in options %}
         {% set value  = opt.value ?? null %}
-        {% set inline = opt.help.inline ?? null %}
-        {% if value and inline %}
+        {% set inline = opt.help.inline ?? opt.help ?? null %}
+        {% if value and inline is string %}
             <template
                 data-namespace="{{ namespace }}"
                 data-name='{{ "#{field.handle}__#{opt.value}__inline" | snake | lower }}'
             >
-                <span class="tip">{{ raw( inline | markdown | widont ) }}</span>
+                <span class="tip">{{ raw( inline | markdown ) }}</span>
             </template>
         {% endif %}
     {% endfor %}
@@ -63,25 +73,24 @@
     {%- import "_includes/forms" as forms -%}
 
     {%- for opt in options -%}
-
         {%- set fields = collect(opt.settings).where('type', '!=', 'hidden' ) -%}
         {%- if fields is not empty -%}
-            {%- set title = "Settings for #{field.name} - #{opt.label}" -%}
+            {%- set title = "#{field.name}: #{opt.label}" -%}
             <template
                 data-namespace="{{ namespace }}"
                 data-name='{{ "#{field.handle}__#{opt.value}__virtuals" | snake | lower }}'
                 data-title="{{ opt.help.input ?? title }}"
                 data-help="{{ opt.help.helptwig ?? null ? 'true' : 'false' }}"
             >
-                {% if opt.help.inputabove ?? null %}<p class='intro'>{{ opt.help.inputabove | markdown | retconChange( 'p', false ) }}</p>{% endif %}
+                {%- set intro = opt.help.intro ?? opt.help.inline ?? opt.help ?? null -%}
+                {{ intro is string ? intro|markdown|attr({ class: 'intro' }) }}
 
                 {% for input in fields.all() %}
                     {{ _self.input( input, value: json[input.name] ?? null ) }}
-                    {# {%- set curval = ( virt.value ?? null and json[virt.name] ?? null ) ? json[virt.name] : null -%}
-                    {%- set virt = loop.first and loop.last ? virt | merge({ fieldClass: 'width-100' }) : virt -%} #}
                 {% endfor %}
 
-                {% if opt.help.inputbelow ?? null %}<p class='outro'>{{ opt.help.inputbelow | markdown | retconChange( 'p', false ) }}</p>{% endif %}
+                {%- set outro = opt.help.outro ?? null -%}
+                {{ outro is string ? outro|markdown|attr({ class: 'outro' }) }}
             </template>
         {%- endif -%}
     {%- endfor -%}
@@ -102,85 +111,43 @@
         step         : settings.step        ?? settings.number.step ?? null,
         size         : settings.size        ?? null,
         options      : settings.options     ?? [],
-        default      : settings.default     ?? settings.number.default ?? null,
+        default      : settings.default     ?? settings.lightswitch.default ?? settings.number.default ?? null,
         maxlength    : settings.maxlength   ?? 255,
-        fieldClass   : settings.fieldClass  ?? 'width-50',
+        fieldClass   : settings.fieldClass  ?? 'width-100',
         placeholder  : settings.placeholder ?? null,
         instructions : settings.help        ?? null,
     } %}
-
-    {# {%- if settings.default is empty and settings.options is not empty -%}
-        {%- set field = field | merge({
-            default: settings.value ?? null,
-        }) -%}
-    {%- endif -%} #}
-    {# value : curval ?? settings.value ?? settings.default ?? null, #}
-
-    {## Fix <lightswitch> value vs. on state ##}
-    {% if field.type|lower == 'lightswitch' %}
-        {% set field = field | merge({
-            value: value ?? '1',
-            on   : ( value is null and field.default is not null ) ? field.default : value,
-        }) %}
-    {% endif %}
-
-
-    {## Normalize <select> options
-    {---------------------------------------------------------------------------}
-        <select> fields can have additional settings associated with each option,
-        i.e. (besides 'value' and 'label'). These get stored on the <option>
-        element as data attributes. The difference in JSON config is:
-    {---------------------------------------------------------------------------}
-        Simple:
-        "options" : {
-            "autolink": "Auto Link",
-            "modal"   : "Lightbox",
-            "download": "Download Image",
-            "none"    : "No Click Action"
-        }
-
-        Complex:
-        "options" : [{
-            "value": "left",
-            "label": "Left Aligned",
-            "microlayout" : "zone1Top"
-        },{
-            "value": "middle",
-            "label": "Middle Aligned",
-            "microlayout" : "zone1Top__center"
-        }]
-    {-------------------------------------------------------------------------##}
-    {# {% if ( ( field.options | first ) is iterable ) %}
-        {% set field = field | merge({
-            options: field.options|map(o => o.optgroup is defined ? o : {
-                label: o.label,
-                value: o.value,
-                data : o | withoutKey(['value', 'label'])
-            })})
-        %}
-    {% endif %} #}
-
 
 
     {## Render the field
     {-------------------------------------------------------------------------##}
     {% import "_includes/forms" as forms %}
 
+    {%- set value = value ?? value[0] ?? null -%}
+
     {% switch field.type|lower %}
         {% case "lightswitch" %}
             {{ forms.lightswitchField({
                 name        : field.name,
                 label       : field.label,
-                value       : value,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
-                on          : field.on,
+                on          : value is not null ? value : field.default ?? null,
             }) }}
         {% case "select" %}
             {{ forms.selectField({
                 name        : field.name,
                 label       : field.label,
                 value       : value ?? field.options[0].value ?? null,
+                options     : field.options,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+            }) }}
+        {% case "multiselect" %}
+            {{ forms.multiselectField({
+                name        : field.name,
+                label       : field.label,
+                values      : value ?? null,
                 options     : field.options,
                 fieldClass  : field.fieldClass,
                 instructions: field.instructions,
@@ -262,16 +229,16 @@
             } only %}
         {% case "hr" %}
             <div class="field hr"></div>
-    {% default %}
-        {{ forms.textField({
-            name        : field.name,
-            label       : field.label,
-            size        : field.size,
-            value       : value ?? field.default ?? null,
-            maxlength   : field.maxlength,
-            fieldClass  : field.fieldClass,
-            placeholder : field.placeholder,
-            instructions: field.instructions,
-        }) }}
+        {% default %}
+            {{ forms.textField({
+                name        : field.name,
+                label       : field.label,
+                size        : field.size,
+                value       : value ?? field.default ?? null,
+                maxlength   : field.maxlength,
+                fieldClass  : field.fieldClass,
+                placeholder : field.placeholder,
+                instructions: field.instructions,
+            }) }}
     {% endswitch %}
 {% endmacro %}

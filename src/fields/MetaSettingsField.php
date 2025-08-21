@@ -1,24 +1,52 @@
 <?php
 /**
- * MetaSettings Field
+ * MetaSettingsField
  */
 
 namespace simplicateca\metasettings\fields;
 
 use Craft;
-use craft\base\Field;
+
 use craft\base\ElementInterface;
 use craft\base\SortableFieldInterface;
-use craft\base\PreviewableFieldInterface;
+use craft\base\InlineEditableFieldInterface;
+use craft\fields\BaseOptionsField;
+use craft\helpers\Json;
+use craft\helpers\FileHelper;
 
-use simplicateca\metasettings\helpers\ConfigHelper;
-use simplicateca\metasettings\fields\MetaSettingsData;
+use simplicateca\metasettings\fields\data\MetaSettingsConfig;
+use simplicateca\metasettings\fields\data\MetaSettingsDropdownData;
+use simplicateca\metasettings\fields\conditions\MetaSettingsDropdownConditionRule;
 
-class MetaSettingsField extends Field implements PreviewableFieldInterface, SortableFieldInterface
+use yii\db\Schema;
+
+class MetaSettingsField extends BaseOptionsField implements SortableFieldInterface, InlineEditableFieldInterface
 {
+    public string $mode = 'json';
     public string $configFile = '';
     public string $configJson = '';
-    public ?string $columnType = null;
+    public string $configTwig = '';
+
+    public function init(): void
+    {
+        if( empty($this->options) ) {
+            $config = new MetaSettingsConfig( $this->fieldConfig() );
+            $this->options = $config->options();
+        }
+
+        parent::init();
+    }
+
+
+    public function fieldConfig(): string
+    {
+        return match ($this->mode) {
+            'twig' => $this->configTwig,
+            'file' => $this->configFile,
+            default => $this->configJson,
+        };
+    }
+
 
     public static function icon(): string {
         return 'list-check';
@@ -28,94 +56,112 @@ class MetaSettingsField extends Field implements PreviewableFieldInterface, Sort
 		return Craft::t('metasettings', 'Dropdown (MetaSettings)');
 	}
 
-    protected function optionsSettingLabel(): string {
-        return Craft::t('metasettings', 'Options');
+    public static function dbType(): string {
+        return Schema::TYPE_JSON;
     }
 
-	public function getContentColumnType(): string {
-		return \yii\db\Schema::TYPE_TEXT;
-	}
-
-	public function getTableAttributeHtml( $value, ElementInterface $element = null ): string {
-		return ucwords(
-			preg_replace('/(?<!\ )[A-Z]/', ' $0', ( $value->label ?? $value->value ?? $value ) )
-		);
-	}
-
-    public function getElementConditionRuleType(): array|string|null {
-        return \simplicateca\metasettings\fields\MetaSettingsConditionRule::class;
+    public static function phpType(): string {
+        return sprintf('\\%s', MetaSettingsDropdownData::class);
     }
 
-    public function getSettingsHtml(): ?string {
-		return Craft::$app->getView()->renderTemplate('metasettings/fields/settings', [
-			'field'     => $this,
-			'options'   => ConfigHelper::findJsonFiles()
-		]); // autosuggest json files in the `templates` directory
-	}
-
-	public function getInputHtml(mixed $value, ?craft\base\ElementInterface $element): string
+    /**
+     * @inheritdoc
+     */
+    public function getElementConditionRuleType(): array|string|null
     {
-        $config = empty( $this->configFile )
-            ? ( empty( $this->configJson ) ? '{}' : $this->configJson )
-            : $this->configFile;
+        return MetaSettingsDropdownConditionRule::class;
+    }
 
-        $options = ConfigHelper::load( $config, $element );
 
-		// when we load an option that no longer exists in the field configuration
-        // $deprecated = ( $value->value && !empty($value->value) && !in_array( $value->value, array_column( $options, 'value' ) ) );
-        // if( $deprecated ) {
-        //     array_unshift( $options, [ 'value' => $value->value, 'label' => '[UNAVAILABLE: ' . $value->value . ']', 'disabled' => true ] );
-		// }
+    public function getElementValidationRules(): array
+    {
+        return [
+            [
+                function(ElementInterface $element) {
+                    if (empty($this->configFile) && empty($this->configJson) && empty($this->configTwig)) {
+                        $element->addError(
+                            $this->handle,
+                            Craft::t('app', 'You must provide a value for at least one of JSON input, Twig template, or File path.')
+                        );
+                    }
+                }
+            ],
+        ];
+    }
 
-        return Craft::$app->getView()->renderTemplate('metasettings/fields/dropdown', [
-            'field' 	 => $this,
-            'value' 	 => $value,
-            'options' 	 => $options['error'] ?? null ? [] : $options,
-            'error' 	 => $options['error'] ?? null ? $options : null,
-            'deprecated' => null,
-            'namespace'  => Craft::$app->getView()->getNamespace()
+
+    public function getSettingsHtml(): ?string
+    {
+        $suggestions = collect( FileHelper::findFiles(
+            Craft::getAlias("@templates"),
+            [ 'only' => ["*.json", "*.twig"]
+        ]) );
+
+        return Craft::$app->getView()->renderTemplate('metasettings/fields/settings', [
+			'field'   => $this,
+			'options' => $suggestions->map( function ($path) {
+                $baseDir = Craft::getAlias("@templates") . DIRECTORY_SEPARATOR;
+                return str_replace( $baseDir, '', $path ); }
+            )->all()
 		]);
 	}
 
 
-	public function normalizeValue(mixed $value, ?craft\base\ElementInterface $element): mixed
+    /**
+     * @inheritdoc
+     */
+    protected function inputHtml(mixed $value, ?ElementInterface $element, bool $inline): string
     {
-        if( $value instanceof MetaSettingsData ) {
+        return $this->inputHtmlInternal($value, $element, false);
+    }
+
+
+    /**
+     * @inheritdoc
+     */
+    public function getStaticHtml(mixed $value, ?ElementInterface $element = null): string
+    {
+        return $this->inputHtmlInternal($value, $element, true);
+    }
+
+
+    protected function inputHtmlInternal(mixed $value, ?ElementInterface $element, bool $static): string
+    {
+        $options = new MetaSettingsConfig( $this->fieldConfig(), $element );
+
+        return Craft::$app->getView()->renderTemplate('metasettings/fields/dropdown', [
+            'field' 	=> $this,
+            'value' 	=> $value,
+            'options' 	=> $options->list(),
+            'error' 	=> $options->error(),
+            'namespace' => Craft::$app->getView()->getNamespace()
+		]);
+    }
+
+
+	public function normalizeValue(mixed $value, ?ElementInterface $element): mixed
+    {
+        if( $value instanceof MetaSettingsDropdownData ) {
             return $value;
         }
 
         $data = [
             'value' => '',
-            'json'  => '{}'
+            'json'  => null,
         ];
 
-        if( !empty($value) ) {
-
-            if( is_string($value) ) {
-                $json = \craft\helpers\Json::decodeIfJson($value);
-
-                if( is_string($json) ) {
-                    $data['value'] = $value;
-                }
-
-                if( is_array($json) ) {
-                    $value = ( !array_diff_key($data, $json) && !array_diff_key($json, $data) )
-                        ? $json
-                        : [ 'value' => $value ];
-                }
+        if( is_string($value) ) {
+            $array = Json::decodeIfJson($value, true);
+            if( \is_array($array) && !array_is_list($array) ) {
+                $data = $array + $data;
+            } else {
+                $data['value'] = $value;
             }
-
-            if( \is_array($value) ) {
-                $data = array_merge( $data, array_filter($value) );
-            }
+        } elseif( \is_array($value) && !array_is_list($value) ) {
+            $data = $value + $data;
         }
 
-        $data['element'] = $element;
-        $data['config']  = empty( $this->configFile )
-            ? ( empty( $this->configJson ) ? '{}' : $this->configJson )
-            : $this->configFile;
-
-
-        return new MetaSettingsData( $data ) ?? null;
+        $metaconf = new MetaSettingsConfig( $this->fieldConfig(), $element );
+        return new MetaSettingsDropdownData( $metaconf->verify( $data ) );
 	}
 }

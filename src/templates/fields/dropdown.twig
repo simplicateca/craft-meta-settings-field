@@ -1,8 +1,8 @@
 {%- import "metasettings/metasettings" as metasettings -%}
 {%- import "_includes/forms" as forms -%}
 
-{%- set fieldid  = "metasettings#{random()}" -%}
-{%- set options  = options ?? [] -%}
+{%- set fieldid = "metasettings#{random()}" -%}
+{%- set options = options ?? [] -%}
 {%- set debug = false -%}
 
 {## Primary Field Input Controls
@@ -10,37 +10,36 @@
 <div class="metasettings-field" data-field="{{ field.handle }}">
     {% if options is not empty %}
         <div class="control">
-            {%- set firstType = options[0].type ?? null -%}
-            {% if options|length == 1 and firstType|lower == 'button' %}
-                {{ forms.hidden({
-                    id   : fieldid,
+            {%- set firstOpt = options[0].value ?? '' -%}
+            {% if options|length == 1 and firstOpt|lower == 'button' %}
+                {%- set input = forms.hidden({
+                    id: fieldid,
                     name : "#{field.handle}[value]",
                     value: options[0].value,
-                }) | attr({ class: 'selectized' }) }}
+                }) -%}
 
-                {% js %}
-                    Craft.MetaSettingsField.setup( document.querySelector('#{{ namespace }}-{{ fieldid }}') );
-                {% endjs %}
+                {{ forms.field({}, input ) }}
 
-                <a class="btn btn-gear only" role="button" tabindex="0"><span>{{options[0].label}}</span></a>
+                {{ metasettings.registerButton( namespace|id, fieldid ) }}
+                <a class="btn btn-gear only" role="button" tabindex="0"><span>{{options[0].label ?? 'Extra Settings'}}</span></a>
+
             {% else %}
 
                 {{ forms.selectizeField({
                     id     : fieldid,
                     name   : "#{field.handle}[value]",
                     options: options,
-                    errors : deprecated ? ["Option no longer unavailable."|t] : false,
                     class  : 'selectize',
                     value  : value.value,
                     selectizeOptions: {
                         highlight: false
                     }
                 }) }}
-                {{ metasettings.registerjs( namespace|id, fieldid ) }}
 
+                {{ metasettings.registerSelectize( namespace|id, fieldid ) }}
                 <a class="btn btn-gear" role="button" tabindex="0"></a>
             {% endif %}
-            <a class="btn btn-help" role="button" tabindex="0"></a>
+            {# <a class="btn btn-help" role="button" tabindex="0"></a> #}
             {{ forms.hidden({ name: "#{field.handle}[json]", value: value.json }) }}
         </div>
         <div class="tooltips"></div>
@@ -55,11 +54,16 @@
     {%- else -%}
         <div class="error flex flex-col items-start">
             {%- if craft.app.config.general.devMode -%}
-                <strong>{{ "JSON Parse Error"|t }}</strong>
-                {{ dump( options ) }}
-                {%- if error.string ?? null -%}
-                    <textarea style="width:100%; height: 60px; border: 1px solid">{{ error.string }}</textarea>
-                    <a href="https://jsonlint.com/?json={{ error.string | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
+                {%- set e = error ? collect(error).first() : null -%}
+                {{ ( e.error   ?? null ) ? tag('strong', { text: e.error } )}}
+                {{ ( e.message ?? null ) ? tag('span',   { text: e.message } )}}
+                {{ ( e.path    ?? null ) ? tag('span',   { text: e.path } )}}
+                {%- if e.json ?? null -%}
+                    <textarea style="width:100%; height: 60px; border: 1px solid">{{ e.json }}</textarea>
+                    <a href="https://jsonlint.com/?json={{ e.json | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
+                {%- endif -%}
+                {%- if e.twig ?? null -%}
+                    <textarea style="width:100%; height: 60px; border: 1px solid">{{ e.twig }}</textarea>
                 {%- endif -%}
             {%- else -%}
                 <strong>{{ "No options available"|t }}</strong>
@@ -71,5 +75,5 @@
 {## <template> content for modals & tooltips
 {-------------------------------------------------------------------------------------##}
 {{ metasettings.virtualmodals( namespace|id, field, options, value.settings ) }}
-{# {{ metasettings.helpmodals( namespace|id, field, options ) }}
-{{ metasettings.inlinetips( namespace|id, field, options ) }} #}
+{{ metasettings.inlinetips( namespace|id, field, options ) }}
+{# {{ metasettings.helpmodals( namespace|id, field, options ) }} #}
