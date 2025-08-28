@@ -3,44 +3,37 @@
 
 {%- set fieldid = "metasettings#{random()}" -%}
 {%- set options = options ?? [] -%}
+{%- set butMode = ( options|length == 1 and (options[0].value ?? '')|lower == 'button' ) -%}
 {%- set debug = false -%}
 
-{## Primary Field Input Controls
-{-------------------------------------------------------------------------------------##}
+{%- set selectizeField = forms.selectizeField({
+    id     : fieldid,
+    name   : "#{field.handle}[value]",
+    options: options,
+    class  : 'selectize',
+    value  : value.value,
+    selectizeOptions: {
+        highlight: false
+    }
+}) -%}
+
 <div class="metasettings-field" data-field="{{ field.handle }}">
     {% if options is not empty %}
         <div class="control">
-            {%- set firstOpt = options[0].value ?? '' -%}
-            {% if options|length == 1 and firstOpt|lower == 'button' %}
-                {%- set input = forms.hidden({
-                    id: fieldid,
-                    name : "#{field.handle}[value]",
-                    value: options[0].value,
-                }) -%}
+            {{- selectizeField | attr({
+                class: [butMode ? "hidden"],
+            }) -}}
 
-                {{ forms.field({}, input ) }}
-
-                {{ metasettings.registerButton( namespace|id, fieldid ) }}
-                <a class="btn btn-gear only" role="button" tabindex="0"><span>{{options[0].label ?? 'Extra Settings'}}</span></a>
-
-            {% else %}
-
-                {{ forms.selectizeField({
-                    id     : fieldid,
-                    name   : "#{field.handle}[value]",
-                    options: options,
-                    class  : 'selectize',
-                    value  : value.value,
-                    selectizeOptions: {
-                        highlight: false
-                    }
-                }) }}
-
-                {{ metasettings.registerSelectize( namespace|id, fieldid ) }}
-                <a class="btn btn-gear" role="button" tabindex="0"></a>
-            {% endif %}
-            {# <a class="btn btn-help" role="button" tabindex="0"></a> #}
-            {{ forms.hidden({ name: "#{field.handle}[json]", value: value.json }) }}
+            {{- tag( 'a', {
+                tabindex: "0",
+                class: ["btn btn-gear", butMode ? "only"],
+                role: "button",
+                html: butMode ? tag( 'span', {
+                    text: options[0].label ?? 'Extra Settings'
+                }) : ""
+            } ) -}}
+            {{- forms.hidden({ name: "#{field.handle}[json]", value: value.json }) -}}
+            {{- metasettings.registerSelectize( namespace|id, fieldid ) -}}
         </div>
         <div class="tooltips"></div>
 
@@ -51,9 +44,10 @@
                 <a href="https://jsonlint.com/?json={{ options | json_encode | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
             </div>
         {%- endif -%}
+
     {%- else -%}
         <div class="error flex flex-col items-start">
-            {%- if craft.app.config.general.devMode -%}
+            {%- if debug and craft.app.config.general.devMode -%}
                 {%- set e = error ? collect(error).first() : null -%}
                 {{ ( e.error   ?? null ) ? tag('strong', { text: e.error } )}}
                 {{ ( e.message ?? null ) ? tag('span',   { text: e.message } )}}

@@ -12,7 +12,7 @@ class MetaSettingsConfig
 
     private array $_options = [];
 
-    public function __construct(?string $source, ElementInterface|array|null $element = null)
+    public function __construct(?string $source, ElementInterface|array|null $element = null, array $context = [])
     {
         if( empty($source) ) {
             $this->setError('Config source is empty');
@@ -20,7 +20,7 @@ class MetaSettingsConfig
         }
 
         try {
-            $this->load($source, ['element' => $element]);
+            $this->load($source, array_merge(['element' => $element], $context));
         } catch (\Throwable $e) {
             $this->setError(
                 'Unable to create MetaSettings Config',
@@ -125,11 +125,7 @@ class MetaSettingsConfig
     {
         $json = $this->looksLikeJson($source) ? Json::decodeIfJson($source, true) : null;
 
-        if( is_string($json) ) {
-            $this->setError( 'Unable to Parse JSON Config', [ "message" => json_last_error_msg(), "source" => "decodeIfJson", "json" => $json ] );
-        }
-
-        if( is_null($json) )
+        if( !is_array($json) )
         {
             $path = Craft::$app->getView()->resolveTemplate($source, Craft::$app->getView()::TEMPLATE_MODE_SITE);
             $twig = $path ? '{{ include( "' . $source . '", ignore_missing = true ) | trim }}' : $source;
@@ -149,6 +145,8 @@ class MetaSettingsConfig
 
         if( is_array( $json ) ) {
             $this->setOptions( $json );
+        } else {
+            $this->setError( 'Unable to Parse Config', [ "message" => json_last_error_msg(), "source" => "decodeIfJson", "json" => $json ] );
         }
     }
 

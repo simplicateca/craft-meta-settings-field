@@ -30,7 +30,7 @@ class MetaSettingsField extends BaseOptionsField implements SortableFieldInterfa
     public function init(): void
     {
         if( empty($this->options) ) {
-            $config = new MetaSettingsConfig( $this->fieldConfig() );
+            $config = new MetaSettingsConfig( $this->fieldConfig(), [ "handle" => $this->handle ] );
             $this->options = $config->options();
         }
 
@@ -127,7 +127,7 @@ class MetaSettingsField extends BaseOptionsField implements SortableFieldInterfa
 
     protected function inputHtmlInternal(mixed $value, ?ElementInterface $element, bool $static): string
     {
-        $options = new MetaSettingsConfig( $this->fieldConfig(), $element );
+        $options = new MetaSettingsConfig( $this->fieldConfig(), $element, [ "handle" => $this->handle ] );
 
         return Craft::$app->getView()->renderTemplate('metasettings/fields/dropdown', [
             'field' 	=> $this,
@@ -161,7 +161,7 @@ class MetaSettingsField extends BaseOptionsField implements SortableFieldInterfa
             $data = $value + $data;
         }
 
-        $metaconf = new MetaSettingsConfig( $this->fieldConfig(), $element );
+        $metaconf = new MetaSettingsConfig( $this->fieldConfig(), $element, [ 'handle' => $this->handle ] );
         return new MetaSettingsDropdownData( $metaconf->verify( $data ) );
 	}
 }

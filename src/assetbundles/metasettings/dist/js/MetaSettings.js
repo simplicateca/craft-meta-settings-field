@@ -428,25 +428,22 @@ Craft.MetaSettingsField.Controller = Garnish.Base.extend({
     },
 
     refresh() {
-        //console.log( this.tagfor('virtuals') )
         if( this.template( this.tagfor('virtuals') ) ) {
             this.btngear()?.classList.remove( 'disabled' );
         } else {
             this.btngear()?.classList.add( 'disabled' );
         }
 
-        if( this.template( this.tagfor('help') ) ) {
-            this.btnhelp()?.classList.remove( 'disabled' );
-        } else {
-            this.btnhelp()?.classList.add( 'disabled' );
-        }
+        // if( this.template( this.tagfor('help') ) ) {
+        //     this.btnhelp()?.classList.remove( 'disabled' );
+        // } else {
+        //     this.btnhelp()?.classList.add( 'disabled' );
+        // }
 
-        if( this.template( this.tagfor('inline') ) ) {
-            const tip = this.template( this.tagfor('inline') )
-            this.tooltips().innerHTML = ( tip )
-                ? tip.content.querySelector('span').outerHTML
-                : ''
-        }
+        const tip = this.template( this.tagfor('inline') ) ?? null
+        this.tooltips().innerHTML = tip
+            ? tip.content.querySelector('span').outerHTML
+            : '';
     },
 
 
