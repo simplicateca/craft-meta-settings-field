@@ -1,33 +1,39 @@
-/** SelectPlusField - Core Class
+/** MetaSettingsField - Core Class
 /---------------------------------------------------------------------------------------/
-    These functions communicate with any/all of the SelectPlus/Selectize instances that
+    These functions communicate with any/all of the MetaSettings/Selectize instances that
     exist on the page at any give time.
 
-    When a SelectPlus field is added to the UI, the `registerjs` macro adds a {% js %}
+    When a MetaSettings field is added to the UI, the `registerjs` macro adds a {% js %}
     call to `waitfor` Selectize to finish its thing before running out `setup()`
 
-    It also monitors each SelectPlus field for <option> changes and triggers the
+    It also monitors each MetaSettings field for <option> changes and triggers the
     `optchange()` function on the appropriate controller.
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField = typeof Craft.SelectPlusField === 'undefined' ? {} : Craft.SelectPlusField;
-Craft.SelectPlusField = {
+Craft.MetaSettingsField = typeof Craft.MetaSettingsField === 'undefined' ? {} : Craft.MetaSettingsField;
+Craft.MetaSettingsField = {
 
+    icons: {},
     $controllers: {},
 
-    setup(selectize) {
-        const $controller = new Craft.SelectPlusField.Controller(selectize)
-        const $selectize  = $controller.selectize()
+    setup(field, namespace) {
+        const $controller = new Craft.MetaSettingsField.Controller(field, namespace)
 
-        if( $selectize.tagName == 'SELECT' ) {
+        const $selectize = $controller.selectize()
+        if( $selectize && $selectize.tagName == 'SELECT' ) {
             new MutationObserver(function(mutations) {
-                if( mutations[0].target ) Craft.SelectPlusField.changed( mutations[0].target )
+                if( mutations[0].target ) Craft.MetaSettingsField.changed( mutations[0].target )
             }).observe( $selectize, { childList: true } )
 
             this.blurfix($selectize)
-        }
 
-        const fieldid = $selectize.id ?? null
-        this.$controllers[fieldid] = $controller
+            if( $selectize.id ?? null ) {
+                this.$controllers[$selectize.id] = $controller
+            }
+        } else {
+            if( field.id ?? null ) {
+                this.$controllers[field.id] = $controller
+            }
+        }
     },
 
     changed(selectize) {
@@ -74,32 +80,83 @@ Craft.SelectPlusField = {
 };
 
 
+Craft.MetaSettingsField.ConfigToggle = Garnish.Base.extend({
+    mode: null,
+    lastTwigVal: null,
+    lastJsonVal: null,
+    lastFileVal: null,
+    init(namespace, mode) {
+        var _this = this
+        var ns = '#' + namespace
+
+        this.mode = mode ?? 'json'
+
+        var $json = document.querySelector(ns + '-json-container')
+        var $twig = document.querySelector(ns + '-twig-container')
+        var $file = document.querySelector(ns + '-file-container')
+
+        new Craft.Listbox( $(ns).children(".btngroup"), {
+            onChange: function(e) {
+                switch (_this.mode = e.data("mode"), _this.mode) {
+                    case "json":
+                        $twig.classList.add("hidden")
+                        $file.classList.add("hidden")
+                        $json.classList.remove("hidden")
+                        document.querySelector(ns + '-mode').value = 'json'
+
+                        break;
+                    case "file":
+                        $json.classList.add("hidden")
+                        $twig.classList.add("hidden")
+                        $file.classList.remove("hidden")
+                        document.querySelector(ns + '-mode').value = 'file'
+                        break;
+                    case "twig":
+                        $json.classList.add("hidden")
+                        $file.classList.add("hidden")
+                        $twig.classList.remove("hidden")
+                        document.querySelector(ns + '-mode').value = 'twig'
+                        break;
+                }
+            }
+        })
+    }
+});
+
+
 
 /** Individual Field Controller
 /---------------------------------------------------------------------------------------/
 
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField.Controller = Garnish.Base.extend({
+Craft.MetaSettingsField.Controller = Garnish.Base.extend({
 
-    icons: {},
     $spf: null,
     $button: null,
+    $elem: null,
 
-    init(elem) {
-        this.$spf = elem ? elem.closest('.selectplus-field') : null
+    init(elem, namespace) {
+        this.$spf = elem ? elem.closest('.metasettings-field') : null
+        this.$elem = elem ?? null
+        // console.log( "Closest Meta Settings Field" )
+        // console.log( elem.closest('.metasettings-field') )
         if( this.$spf ) {
 
-            const $button = new Craft.SelectPlusField.Button(this)
+            this.$spf.setAttribute('data-namespace', namespace)
+
+            const $button = new Craft.MetaSettingsField.Button(this)
 
             this.btngear().onclick    = function() { $button.inputmodal() }
             this.btngear().onkeypress = function(e) {
                 if (e.key === 'Enter') { $button.inputmodal() }
             }
 
-            this.btnhelp().onclick    = function() { $button.helpmodal()  }
-            this.btnhelp().onkeypress = function(e) {
-                if (e.key === 'Enter') { $button.helpmodal() }
-            }
+            // this.btnhelp().onclick    = function() { $button.helpmodal()  }
+            // this.btnhelp().onkeypress = function(e) {
+            //     if (e.key === 'Enter') { $button.helpmodal() }
+            // }
+
+            // console.log( "Tag for Virtuals: " + this.tagfor('virtuals') )
 
             this.refresh()
 
@@ -111,12 +168,20 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
         return this.$spf.dataset.field
     },
 
+    namespace() {
+        return this.$spf.dataset.namespace
+    },
+
     selectize() {
         return this.$spf.querySelector('.selectized')
     },
 
     value() {
-        return this.selectize()?.value ?? null
+        if ( this.selectize() ) {
+            return this.selectize().value
+        } else {
+            return this.$elem.value ?? null
+        }
     },
 
     btngear() {
@@ -158,15 +223,16 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
     },
 
     template(name) {
-        return document.querySelector('template[data-name=' + name + ']' ) ?? null
+        return document.querySelector('template[data-name=' + name + '][data-namespace=' + this.namespace() + ']' ) ?? null
     },
 
-    tagfor(type=null) {
-        const handle = this.handle() + '_' + this.value() + '_' + type
+    tagfor(type = null) {
+        const handle = this.handle() + '-' + this.value() + '-' + type;
         return handle
-            .replace(/\W/g, '')
-            .replace(/([a-z])([A-Z])/g, '$1_$2')
-            .toLowerCase()
+            .replace(/([a-z])([A-Z])/g, '$1-$2')   // split camelCase with dash
+            .replace(/[^A-Za-z0-9]+/g, '-')        // turn non-alphanum groups into single dash
+            .replace(/^-+|-+$/g, '')               // trim leading/trailing dashes
+            .toLowerCase();
     },
 
     inputhtml() {
@@ -183,7 +249,7 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
     inputmodal() {
         const template = this.template( this.tagfor('virtuals') )
         if( template ) {
-            new Craft.SelectPlusField.VirtualInputs( this, {
+            new Craft.MetaSettingsField.VirtualInputs( this, {
                 html : this.inputhtml(),
                 title: template.dataset.title,
                 help: template.dataset.help,
@@ -199,10 +265,10 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
     helpmodal() {
         const template = this.template( this.tagfor('help') )
         if( template ) {
-            new Craft.SelectPlusField.HelpModal( this, {
+            new Craft.MetaSettingsField.HelpModal( this, {
                 html    : this.helphtml(),
                 title   : template.dataset.title,
-                moreurl : template.dataset.moreurl,
+                helpurl : template.dataset.helpurl,
                 virtuals: template.dataset.virtuals,
                 triggerElement: this.btnhelp(),
             })
@@ -210,31 +276,72 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
     },
 
     refreshicons(domref) {
-        for( const [key, value] of Object.entries(this.icons) ) {
-            const iconfield = domref.querySelector('#' + key )
-            if( iconfield ) { iconfield.innerHTML = value }
+
+        const currvals = this.json()
+        const $iconinputs = domref.querySelectorAll('[data-attribute^="iconpicker"]')
+
+        for( var i = 0; i < $iconinputs.length; i++ ) {
+
+            const fieldname = $iconinputs[i].dataset.name ?? null;
+            const $iconhome = $iconinputs[i].querySelector('.icon-picker') ?? null;
+            if( ! $iconhome ) { break; }
+
+            // have an existing icon value
+            if( currvals[fieldname] ) {
+                $iconhome.querySelector('button.icon-picker--remove-btn').classList.remove('hidden')
+                $iconhome.querySelector('input[type=hidden]').value = currvals[fieldname]
+
+                if( Craft.MetaSettingsField.icons[currvals[fieldname]] ?? null ) {
+                    $iconhome.querySelector('.icon-picker--icon').innerHTML = Craft.MetaSettingsField.icons[currvals[fieldname]]
+                }
+
+            // no icon selected
+            } else {
+                $iconhome.querySelector('button.icon-picker--remove-btn').classList.add('hidden')
+                $iconhome.querySelector('.icon-picker--icon').innerHTML = ''
+                $iconhome.querySelector('input[type=hidden]').value = ''
+            }
         }
         return domref
     },
 
     setvalues(domref) {
-        const values = this.json()
-        for( const key in values ) {
-            const input = domref.querySelector(`[name$="[${key}]"]`)
-            if( input ) {
+        const currvals = this.json()
+        for( const key in currvals ) {
+            const input = domref.querySelector(`[name$="[${key}][]"]`)
+                       ?? domref.querySelector(`[name$="[${key}]"]`);
 
+            if( input ) {
                 const parent = input.parentNode
 
-                // don't set select value unless an option for it exists
-                if( input.tagName === 'SELECT' ) {
-                    const optionExists = Array.from(input.options).some(option => option.value === values[key]);
-                    if( optionExists ) {
-                        input.value = values[key];
+                // Multi-select fields
+                if (input.tagName === 'SELECT' && input.multiple) {
+                    const values = (Array.isArray(currvals[key]) ? currvals[key] : [currvals[key]])
+                    .map(v => String(v)); // Ensure string comparison
+
+                    for (const option of input.options) {
+                        const selected = values.includes(option.value);
+                        option.selected = selected;
                     }
 
-                // don't set the value for lightswitch, it should already be set, right?
+                // Single select fields
+                } else if (input.tagName === 'SELECT') {
+                    const optionExists = Array.from(input.options).some(option => option.value === currvals[key]);
+                    if( optionExists ) {
+                        input.value = currvals[key];
+                    }
+
+                // Radio Buttons
+                } else if( input.tagName === 'INPUT' && input.type === 'radio' ) {
+                    if( input.value === currvals[key] ) {
+                        input.checked = true;
+                    } else {
+                        input.checked = false;
+                    }
+
+                // Lightswitch
                 } else if( parent.classList.contains('lightswitch') ) {
-                    if( values[key] ) {
+                    if( currvals[key] && currvals[key] != "" ) {
                         parent.classList.add('on');
                         parent.setAttribute('aria-checked', 'true');
                     } else {
@@ -242,8 +349,8 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
                         parent.setAttribute('aria-checked', 'false');
                     }
 
-                // all the other field types
-                } else { input.value = values[key]; }
+                // All other input types
+                } else { input.value = currvals[key]; }
 
             }
         }
@@ -267,19 +374,48 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
             .filter( str => str != null && str != "" )
     },
 
+
     inputdata( fieldname, value ) {
-        const input = this.inputhtml().querySelector(`[name$="[${fieldname}]"]`);
+        // Try to select the actual input/select element, including those with trailing []
+        let input = this.inputhtml().querySelector(`[name="fields[${fieldname}][]"]`)
+                 ?? this.inputhtml().querySelector(`[name="fields[${fieldname}]"]`)
+                 ?? this.inputhtml().querySelector(`[name$="[fields][${fieldname}][]"]`)
+                 ?? this.inputhtml().querySelector(`[name$="[fields][${fieldname}]"]`);
+
+        if( input && input.type == 'radio' ) {
+            const $inputs = this.inputhtml().querySelectorAll(`[name$="[\[fields\]${fieldname}]"]`)
+                         ?? this.inputhtml().querySelectorAll(`[name$="fields[${fieldname}]"]`);
+
+            input = null;
+            $inputs.forEach( elem => {
+                if( elem.value === value ) { input = elem; }
+            })
+        }
+
         if( input ) {
+            const parent = input.parentNode
             let data = {}
 
-            if( input.tagName === 'SELECT' ) {
-                const opt = Array.from(input.options).some(option => option.value === value);
-                if( opt ) {
-                    data = opt.dataset ?? {}
-                    data[fieldname] = opt.value
+            // Multi-select
+            if (input.tagName === 'SELECT' && input.multiple) {
+                const selectedValues = Array.from(input.selectedOptions).map(opt => opt.value);
+                data[fieldname] = selectedValues;
+
+            // Single select
+            } else if (input.tagName === 'SELECT') {
+                const opt = Array.from(input.options).find(option => option.value === value);
+                if (opt) {
+                    data = opt.dataset ?? {};
+                    data[fieldname] = opt.value;
                 }
+
+            // Lightswitch
+            } else if (input.tagName === 'INPUT' && parent.classList.contains('lightswitch')) {
+                data[fieldname] = parent.classList.contains('on') ? input.value : '';
+
+            // All other inputs
             } else {
-                data[fieldname] = input.value
+                data[fieldname] = input.value;
             }
 
             return data
@@ -287,35 +423,8 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
     },
 
     optchange() {
-        const modalname= 'virtuals'
-        const currjson = this.json()
-        const $inputs  = this.inputs(modalname)
-        const $fields  = this.fieldnames(modalname)
-        const defaults = this.serialize($inputs)
-
-        // which fields from our current json exist in the modal $fields?
-        const portable = {};
-        Object.keys(currjson).forEach( name => {
-            if( $fields.includes(name) ) { portable[name] = currjson[name] }
-        })
-
-        // are the existing portable values (a) acceptable for each of their
-        // respectively names fields, and (b) do any of those fields have extra
-        // `settings` data associated with its newly ported value?
-        let transfer = {};
-        for( const key in portable ) {
-            transfer = Object.assign(transfer,
-                this.inputdata(key, portable[key])
-            )
-        }
-
-        // combine the valid transferable values with the new defaults
-        // and update the field json
-        this.update( Object.assign( defaults, transfer ) )
-
         this.refresh()
     },
-
 
     refresh() {
         if( this.template( this.tagfor('virtuals') ) ) {
@@ -324,21 +433,23 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
             this.btngear()?.classList.add( 'disabled' );
         }
 
-        if( this.template( this.tagfor('help') ) ) {
-            this.btnhelp()?.classList.remove( 'disabled' );
-        } else {
-            this.btnhelp()?.classList.add( 'disabled' );
-        }
+        // if( this.template( this.tagfor('help') ) ) {
+        //     this.btnhelp()?.classList.remove( 'disabled' );
+        // } else {
+        //     this.btnhelp()?.classList.add( 'disabled' );
+        // }
+        console.log("Refreshing tooltips for " + this.tagfor('inline') )
 
-        const tip = this.template( this.tagfor('inline') )
-        this.tooltips().innerHTML = ( tip )
+        const tip = this.template( this.tagfor('inline') ) ?? null
+        this.tooltips().innerHTML = tip
             ? tip.content.querySelector('span').outerHTML
-            : ''
+            : '';
     },
 
 
     save( $form ) {
         if( $form[0] ?? null ) {
+            //console.log( $form[0].querySelectorAll('input, select, textarea') )
             this.update( this.serialize( $form[0].querySelectorAll('input, select, textarea') ) )
             this.saveicons( $form[0] )
         }
@@ -351,38 +462,72 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
         const $icons = $form.querySelectorAll( '.icon-picker--icon' ) ?? null;
         if( $icons ) {
             Array.from($icons).forEach((icon) => {
-                const parent = icon.closest('.icon-picker')
-                if( parent && parent.id ) {
-                    this.icons[parent.id] = parent.innerHTML
-                }
+                Craft.MetaSettingsField.icons[icon.getAttribute('title')] = icon.innerHTML
             });
         }
     },
 
 
-    serialize( fields ) {
+    serialize(fields) {
         let values = {};
-        if( !fields || !fields.length ) { return values; }
+        if (!fields || !fields.length) return values;
 
-        fields.forEach( (input) => {
-            if( input.name ) {
-                const match = input.name.match(/\[([^[\]]+)\]$/)
-                if( match ) {
-                    if( input.type === 'checkbox' || input.type === 'radiogroup' ) {
-                        values[match[1]] = input.checked ? input.value : values[match[1]];
-                    } else if( input.tagName === 'SELECT' ) {
-                        const option = Object.assign({}, input.options[input.selectedIndex].dataset ?? null )
-                        values[match[1]] = input.value;
-                        values = Object.assign({}, values, option);
-                    } else {
-                        values[match[1]] = input.value;
-                    }
+        fields.forEach((input) => {
+            if (!input.name) return;
+
+            const parent = input.parentNode;
+            const $field = parent.closest('.field[data-attribute]');
+            const match = input.name.match(/\[([^[\]]+)\](\[\])?$/);
+            if (!match) return;
+
+            const fieldKey = match[1];
+
+            // Lightswitch
+            if (input.tagName === 'INPUT' && parent.classList.contains('lightswitch')) {
+                values[fieldKey] = parent.classList.contains('on') ? input.value : '';
+
+            // Money field container
+            } else if (input.tagName === 'INPUT' && parent.classList.contains('money-container')) {
+                values[$field.dataset.name] = input.value;
+
+            // Date wrapper
+            } else if (input.tagName === 'INPUT' && parent.classList.contains('datewrapper')) {
+                if (!input.name.endsWith('][locale]') && !input.name.endsWith('][timezone]')) {
+                    values[$field.dataset.name] = input.value;
+                }
+
+            // Time wrapper
+            } else if (input.tagName === 'INPUT' && parent.classList.contains('timewrapper')) {
+                if (!input.name.endsWith('][locale]') && !input.name.endsWith('][timezone]')) {
+                    values[$field.dataset.name] = input.value;
+                }
+
+            // Select (including multiselect)
+            } else if (input.tagName === 'SELECT') {
+                // console.log( 'here' )
+                // console.log( input )
+                if (input.multiple) {
+                    const selectedValues = Array.from(input.selectedOptions).map(opt => opt.value);
+                    // console.log( 'multiples' )
+                    // console.log( selectedValues )
+                    values[fieldKey] = selectedValues;
+                } else {
+                    const option = Object.assign({}, input.options[input.selectedIndex]?.dataset ?? {});
+                    values[fieldKey] = input.value;
+                    values = Object.assign({}, values, option);
+                }
+
+            // Generic input (excluding locale/timezone metadata)
+            } else {
+                if (!input.name.endsWith('][locale]') && !input.name.endsWith('][timezone]')) {
+                    values[fieldKey] = input.value;
                 }
             }
-        } );
+        });
 
         return values;
     },
+
 });
 
 
@@ -390,7 +535,7 @@ Craft.SelectPlusField.Controller = Garnish.Base.extend({
 /** Button Objects
 /---------------------------------------------------------------------------------------/
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField.Button = Garnish.Base.extend({
+Craft.MetaSettingsField.Button = Garnish.Base.extend({
     $control: null,
     init($control) { this.$control = $control },
     helpmodal()  { this.$control.helpmodal() },
@@ -402,7 +547,7 @@ Craft.SelectPlusField.Button = Garnish.Base.extend({
 /** Help Modal
 /---------------------------------------------------------------------------------------/
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField.HelpModal = Garnish.Modal.extend({
+Craft.MetaSettingsField.HelpModal = Garnish.Modal.extend({
 
     $control: null,
 
@@ -412,14 +557,14 @@ Craft.SelectPlusField.HelpModal = Garnish.Modal.extend({
 
         const content = Object.assign({}, {
             title   : 'Help',
-            moreurl : null,
+            helpurl : null,
             virtuals: false,
             html    : '',
         }, settings )
 
-        this.setSettings({ draggable: true }, Garnish.Modal.defaults);
+        this.setSettings({}, Garnish.Modal.defaults);
 
-        this.$form = $('<form class="modal fitted selectplus-modal selectplus-help" />').appendTo(Garnish.$bod);
+        this.$form = $('<form class="modal fitted metasettings-modal metasettings-help" />').appendTo(Garnish.$bod);
 
         const $header = $('<div class="header" />').appendTo(this.$form);
         $('<h1>' + content.title + '</h1>').appendTo($header);
@@ -438,8 +583,8 @@ Craft.SelectPlusField.HelpModal = Garnish.Modal.extend({
         const $footer = $('<div class="footer"/>').appendTo(this.$form);
         const $mainBtnGroup = $('<div class="buttons right"/>').appendTo($footer);
 
-        if( content.moreurl ) {
-            $moreBtn = $('<a href="' + content.moreurl + '" target="_blank" class="btn submit">' + Craft.t('selectplus', 'More') + '</a>').appendTo($mainBtnGroup);
+        if( content.helpurl ) {
+            $moreBtn = $('<a href="' + content.helpurl + '" target="_blank" class="btn submit">' + Craft.t('metasettings', 'More') + '</a>').appendTo($mainBtnGroup);
             this.addListener($moreBtn, 'click', 'closing');
             this.addListener($moreBtn, 'keypress', function (e) {
                 if (e.key === 'Enter') { this.closing() }
@@ -484,7 +629,7 @@ Craft.SelectPlusField.HelpModal = Garnish.Modal.extend({
 /** Virtual Inputs Modal
 /---------------------------------------------------------------------------------------/
 /-------------------------------------------------------------------------------------**/
-Craft.SelectPlusField.VirtualInputs = Garnish.Modal.extend({
+Craft.MetaSettingsField.VirtualInputs = Garnish.Modal.extend({
 
     $control: null,
 
@@ -499,15 +644,14 @@ Craft.SelectPlusField.VirtualInputs = Garnish.Modal.extend({
         }, settings )
 
         this.setSettings({
-            draggable: true,
             hideOnEsc: false,
             hideOnShadeClick: false,
         }, Garnish.Modal.defaults);
 
-        this.$form = $('<form class="modal fitted selectplus-modal selectplus-virtuals" accept-charset="UTF-8"/>').appendTo(Garnish.$bod);
+        this.$form = $('<form class="modal fitted metasettings-modal metasettings-virtuals" accept-charset="UTF-8"/>').appendTo(Garnish.$bod);
 
         // modal header
-        // todo: add a sidebar showing other selectplus fields in the same entry?
+        // todo: add a sidebar showing other metasettings fields in the same entry?
         const $header = $('<div class="header" />').appendTo(this.$form);
         $('<h1>' + content.title + '</h1>').appendTo($header);
         if( content.help == 'true' ) {
@@ -592,7 +736,7 @@ Craft.SelectPlusField.VirtualInputs = Garnish.Modal.extend({
             }
 
             // color picker fields
-            // -> craftcms/vendor/simplicateca/selectplus/src/templates/forms/color.twig
+            // -> craftcms/vendor/simplicateca/metasettings/src/templates/forms/color.twig
             if( attribute.startsWith('color') ) {
                 const colorfield = $virtuals[i].id.replace(/-field$/, '-container');
                 new Craft.ColorInput('#' + colorfield, { presets: [] });

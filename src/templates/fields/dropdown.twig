@@ -1,58 +1,71 @@
-{% import "selectplus/selectplus" as selectplus %}
-{% import "_includes/forms" as forms %}
+{%- import "metasettings/metasettings" as metasettings -%}
+{%- import "_includes/forms" as forms -%}
 
-{% set fieldid  = "selectplus#{random()}" %}
-{% set options  = options ?? [] %}
-{% set virtvals = value.json ??? {} | json_decode %}
+{%- set debug = false -%}
+{%- set fieldid = "metasettings#{random()}" -%}
+{%- set available = config.options() ?? [] -%}
 
-{## Primary Field Input Controls
-{-------------------------------------------------------------------------------------##}
-<div class="selectplus-field" data-field="{{ field.handle }}">
-    <div class="control">
-
-        {% if options | length == 1 and options[0].button %}
-            {{ forms.hidden({
-                id   : fieldid,
-                name : "#{field.handle}[value]",
-                value: options[0].value,
-            }) | attr({ class: 'selectized' }) }} {## psyche! ##}
-
-            {% js %}
-                Craft.SelectPlusField.setup( document.querySelector('#{{ namespace }}-{{ fieldid }}') );
-            {% endjs %}
-
-            <a class="btn btn-gear only" role="button" tabindex="0"><span>{{options[0].label}}</span></a>
-        {% else %}
-
+<div class="metasettings-field" data-field="{{ field.handle }}">
+    {% if available is not empty %}
+        <div class="control">
             {{ forms.selectizeField({
                 id     : fieldid,
                 name   : "#{field.handle}[value]",
-                options: options ?? [],
-                errors : deprecated ? ["Option no longer unavailable."|t] : false,
                 class  : 'selectize',
+                options: config.list() ?? [],
                 value  : value.value,
                 selectizeOptions: {
-                    highlight: false
+                    highlight: false,
                 }
             }) }}
 
-            {{ selectplus.registerjs( namespace, fieldid ) }}
+            {{ tag( 'a', {
+                class: ["btn btn-gear"],
+                title: "Change settings"|t,
+                aria: {
+                    label: "Change settings"|t,
+                }
+            }) }}
 
-            <a class="btn btn-gear" role="button" tabindex="0"></a>
-        {% endif %}
-        <a class="btn btn-help" role="button" tabindex="0"></a>
-        {{ forms.hidden({ name: "#{field.handle}[json]", value: value.json }) }}
-    </div>
+            {{ forms.hidden({ name: "#{field.handle}[json]", value: value.json }) }}
 
-    {% if not options | length %}
-        <p class="error">Uh-oh! Looks like something is a misconfigured. Chat with your CMS admin.</p>
+            {% js %}
+                Craft.MetaSettingsField
+                    .waitfor('select#{{"#{namespace|id}-#{fieldid}"}}.selectized')
+                    .then( ($select) => { Craft.MetaSettingsField.setup( $select, '{{namespace|id}}' ) });
+            {% endjs %}
+        </div>
+        <div class="tooltips"></div>
+        {%- if debug and craft.app.config.general.devMode -%}
+            <div class="flex flex-col items-start">
+                <strong>JSON Config</strong>
+                <textarea style="width:100%; height: 60px; border: 1px solid">{{ available | json_encode }}</textarea>
+                <a href="https://jsonlint.com/?json={{ available | json_encode | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
+            </div>
+        {%- endif -%}
+    {%- else -%}
+        <div class="error flex flex-col items-start">
+            {%- if debug and craft.app.config.general.devMode -%}
+                {%- set e = config.error ? collect(config.error).first() : null -%}
+                {{ ( e.error   ?? null ) ? tag('strong', { text: e.error } )}}
+                {{ ( e.message ?? null ) ? tag('span',   { text: e.message } )}}
+                {{ ( e.path    ?? null ) ? tag('span',   { text: e.path } )}}
+                {%- if e.json ?? null -%}
+                    <textarea style="width:100%; height: 60px; border: 1px solid">{{ e.json }}</textarea>
+                    <a href="https://jsonlint.com/?json={{ e.json | url_encode }}" target="_blank" rel="noopener noreferrer">Validate JSON</a>
+                {%- endif -%}
+                {%- if e.twig ?? null -%}
+                    <textarea style="width:100%; height: 60px; border: 1px solid">{{ e.twig }}</textarea>
+                {%- endif -%}
+            {%- else -%}
+                <strong>{{ "No options available"|t }}</strong>
+            {%- endif -%}
+        </div>
     {% endif %}
-
-    <div class="tooltips"></div>
 </div>
+
 
 {## <template> content for modals & tooltips
 {-------------------------------------------------------------------------------------##}
-{{ selectplus.virtualmodals( field, options, virtvals ) }}
-{{ selectplus.helpmodals( field, options ) }}
-{{ selectplus.inlinetips( field, options ) }}
+{{ metasettings.virtualmodals( namespace|id, field, available, value.settings ) }}
+{{ metasettings.inlinetips( namespace|id, field, available ) }}

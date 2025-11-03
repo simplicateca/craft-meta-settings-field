@@ -1,0 +1,218 @@
+{## Tooltips & Help Modal Launchers
+{-------------------------------------------------------------------------------------##}
+{% macro inlinetips( namespace, field, options ) %}
+    {% for opt in options %}
+        {% set value  = opt.value ?? null %}
+        {% set inline = opt.help.inline ?? opt.help ?? null %}
+        {% if value and inline is string %}
+            <template
+                data-namespace="{{ namespace }}"
+                data-name='{{ "#{field.handle}-#{opt.value}-inline" | slugify }}'
+            >
+                <span class="tip">{{ raw( inline | markdown ) }}</span>
+            </template>
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+
+
+{## Help Doc Modal Templates
+{-------------------------------------------------------------------------------------##}
+{# {% macro helpmodals( namespace, field, options ) %}
+    {% for opt in options %}
+        {% if opt.help.helptwig ?? null %}
+            {%- set helptitle = opt.help is string ? opt.help : "Help for #{field.name} - #{opt.label}" -%}
+            {%- set extraFields = collect( opt.settings ?? null ).firstWhere( 'type', '!=', 'hidden' ) ?? null -%}
+            <template
+                data-namespace="{{ namespace }}"
+                data-title="{{ opt.help.help ?? helptitle }}"
+                data-helpurl="{{ opt.help.helpurl ?? null }}"
+                data-name='{{ "#{field.handle}__#{opt.value}__help" | snake | lower }}'
+                data-virtuals="{{ extraFields ?? null ? 'true' : 'false' }}"
+            >{{ include( opt.help.helptwig ) }}</template>
+        {% endif %}
+    {% endfor %}
+{% endmacro %} #}
+
+
+
+{## Virtual Field Modal Templates
+{-------------------------------------------------------------------------------------##}
+{%- macro virtualmodals( namespace, field, options, json ) -%}
+
+    {## decode JSON string if necessary ##}
+    {%- set json = ( json is string ) ? json | json_decode : json -%}
+
+    {%- import "_includes/forms" as forms -%}
+
+    {%- for opt in options -%}
+        {%- set fields = collect(opt.settings).where('type', '!=', 'hidden' ) -%}
+        {%- if fields is not empty -%}
+            {%- set title = "#{field.name}: #{opt.label}" -%}
+            <template
+                data-namespace="{{ namespace }}"
+                data-name='{{ "#{field.handle}-#{opt.value}-virtuals" | slugify }}'
+                data-title="{{ opt.help.input ?? title }}"
+                data-help="{{ opt.help.helptwig ?? null ? 'true' : 'false' }}"
+            >
+                {%- set intro = opt.help.intro ?? opt.help.inline ?? opt.help ?? null -%}
+                {{ intro is string ? intro|markdown|attr({ class: 'intro' }) }}
+
+                {% for input in fields.all() %}
+                    {{ _self.input( input, value: json[input.name] ?? null ) }}
+                {% endfor %}
+
+                {%- set outro = opt.help.outro ?? null -%}
+                {{ outro is string ? outro|markdown|attr({ class: 'outro' }) }}
+            </template>
+        {%- endif -%}
+    {%- endfor -%}
+{%- endmacro -%}
+
+
+
+{## Individual Virtual Input Fields
+{-------------------------------------------------------------------------------------##}
+{% macro input( settings, value = null ) %}
+
+    {% set field = {
+        type         : settings.type        ?? 'text',
+        name         : settings.name        ?? null,
+        label        : settings.label       ?? null,
+        min          : settings.min         ?? settings.number.min  ?? null,
+        max          : settings.max         ?? settings.number.max  ?? null,
+        step         : settings.step        ?? settings.number.step ?? null,
+        size         : settings.size        ?? null,
+        options      : settings.options     ?? [],
+        default      : settings.default     ?? settings.lightswitch.default ?? settings.number.default ?? null,
+        maxlength    : settings.maxlength   ?? 255,
+        fieldClass   : settings.fieldClass  ?? 'width-100',
+        placeholder  : settings.placeholder ?? null,
+        instructions : settings.help        ?? null,
+    } %}
+
+
+    {## Render the field
+    {-------------------------------------------------------------------------##}
+    {% import "_includes/forms" as forms %}
+
+    {%- set value = value ?? value[0] ?? null -%}
+
+    {% switch field.type|lower %}
+        {% case "lightswitch" %}
+            {{ forms.lightswitchField({
+                name        : field.name,
+                label       : field.label,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+                on          : value is not null ? value : field.default ?? null,
+            }) }}
+        {% case "select" %}
+            {{ forms.selectField({
+                name        : field.name,
+                label       : field.label,
+                value       : value ?? field.options[0].value ?? null,
+                options     : field.options,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+            }) }}
+        {% case "multiselect" %}
+            {{ forms.multiselectField({
+                name        : field.name,
+                label       : field.label,
+                values      : value ?? null,
+                options     : field.options,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+            }) }}
+        {% case "radiogroup" %}
+            {{ forms.radioGroupField({
+                name        : field.name,
+                label       : field.label,
+                value       : value,
+                options     : field.options,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+            }) }}
+        {% case "number" %}
+            {{ forms.textField({
+                type        : 'number',
+                name        : field.name,
+                label       : field.label,
+                value       : value ?? field.default ?? null,
+                size        : field.size ?? 8,
+                min         : field.min,
+                max         : field.max,
+                step        : field.step,
+                fieldClass  : field.fieldClass,
+                placeholder : field.placeholder,
+                instructions: field.instructions,
+            }) }}
+        {% case "date" %}
+            {{ forms.dateField({
+                name        : field.name,
+                label       : field.label,
+                value       : value ?? field.default ?? null,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+                data: {
+                    name: field.name,
+                }
+            }) }}
+        {% case "time" %}
+            {{ forms.timeField({
+                name        : field.name,
+                label       : field.label,
+                value       : value ?? field.default ?? null,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+                data: {
+                    name: field.name,
+                }
+            }) }}
+        {% case "money" %}
+            {{ forms.moneyField({
+                name        : field.name,
+                label       : field.label,
+                value       : value ?? field.default ?? null,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+                data: {
+                    name: field.name,
+                }
+            }) }}
+        {% case "icon" %}
+            {{ forms.iconPickerField({
+                name        : field.name,
+                label       : field.label,
+                value       : value,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+                data: {
+                    name: field.name,
+                }
+            }) }}
+        {% case "color" %}
+            {% include "metasettings/fields/virtual.color" with {
+                name        : field.name,
+                value       : value ?? field.default ?? null,
+                label       : field.label,
+                fieldClass  : field.fieldClass,
+                instructions: field.instructions,
+            } only %}
+        {% case "hr" %}
+            <div class="field hr"></div>
+        {% default %}
+            {{ forms.textField({
+                name        : field.name,
+                label       : field.label,
+                size        : field.size,
+                value       : value ?? field.default ?? null,
+                maxlength   : field.maxlength,
+                fieldClass  : field.fieldClass,
+                placeholder : field.placeholder,
+                instructions: field.instructions,
+            }) }}
+    {% endswitch %}
+{% endmacro %}

@@ -1,35 +1,98 @@
-{% import "_includes/forms" as forms %}
+{%- import "_includes/forms" as forms -%}
+{%- import 'codeeditor/codeEditor.twig' as codeEditor -%}
 
-{{ forms.autosuggestField({
-    label: "JSON Config"|t('selectplus'),
-    instructions: "The relative path from your `cms/templates` directory"|t('selectplus'),
-    id: 'configFile',
-    class: ['ltr', 'template'],
+{%- set jsonEditor = {
+    attr: {
+        label: 'JSON Config'|t,
+        name : 'configJson',
+        placeholder: "{\n  \n}",
+        value: field.configJson ?? null
+    },
+    monaco: { language: 'json' }
+} -%}
+
+{%- set twigEditor = {
+    attr: {
+        label: 'Twig Config'|t,
+        name : 'configTwig',
+        instructions: 'Use Twig to render the JSON config dynamically.'|t,
+        placeholder: '{{- { option1: "Label 1", option2: "Label 2" } | json_encode -}}',
+        value: field.configTwig ?? null
+    },
+    monaco: { language: 'twig' }
+} -%}
+
+{%- set fileSelector = {
+    label: "JSON File Path"|t,
     name: 'configFile',
     value: field.configFile ?? null,
-    required: true,
-    placeholder: "_site/json/layout.json",
-    suggestions: [
-        { data: options },
-    ],
-}) }}
+    suggestions: [{ data: options }],
+} -%}
 
+{%- set mode = field.mode ?? null -%}
+{%- set mode = mode ? mode : field.configFile is empty
+    ? field.configJson is empty
+        ? 'twig'
+        : 'json'
+    : 'file' -%}
+
+{%- set isJson = mode == 'json' -%}
+{%- set isFile = mode == 'file' -%}
+{%- set isTwig = mode == 'twig' -%}
+
+<div id="config-toggle">
+    <section class="btngroup btngroup--exclusive small" aria-label="{{ 'Configuration method'|t }}">
+    {{ forms.hidden({
+        id: 'config-toggle-mode',
+        value: mode,
+        name: 'mode',
+    }) }}
+
+    {{ tag('button', {
+        type: 'button',
+        class: ['btn', 'small', isJson ? 'active']|filter,
+        aria: {pressed: isJson ? 'true'}|filter,
+        data: {mode: 'json'},
+        text: 'JSON Code',
+    }) }}
+
+    {{ tag('button', {
+        type: 'button',
+        class: ['btn', 'small', isTwig ? 'active' : null]|filter,
+        aria: {pressed: isTwig ? 'true'}|filter,
+        data: {mode: 'twig'},
+        text: 'Twig Code',
+    }) }}
+
+    {{ tag('button', {
+        type: 'button',
+        class: ['btn', 'small', isFile ? 'active' : null]|filter,
+        aria: {pressed: isFile ? 'true'}|filter,
+        data: {mode: 'file'},
+        text: 'Template',
+    }) }}
+    </section>
+</div>
 <br>
-<hr>
-<br>
 
-<h2>Need Help Getting Started?</h2>
+{{- tag( 'div', {
+    id: 'config-toggle-json-container',
+    class: isJson ? [] : ['hidden'],
+    html: codeEditor.textareaField( jsonEditor.attr, monacoOptions: jsonEditor.monaco )
+}) -}}
 
-<p>Try one of these file paths as the <strong>JSON Config</strong> to test out how the field works:</p>
+{{- tag( 'div', {
+    id: 'config-toggle-twig-container',
+    class: isTwig ? [] : ['hidden'],
+    html: codeEditor.textareaField( twigEditor.attr, monacoOptions: twigEditor.monaco )
+}) -}}
 
-<ul>
-    <li><code>_selectplus/config/basic.json</code></li>
-    <li><code>_selectplus/config/all-inputs.json</code></li>
-    <li><code>_selectplus/config/button-only.json</code></li>
-</ul>
+{{- tag( 'div', {
+    id: 'config-toggle-file-container',
+    class: isFile ? [] : ['hidden'],
+    html: forms.autosuggestField( fileSelector )
+}) -}}
 
-<p>
-    Additional <a href="https://github.com/simplicateca/craft-selectplus-field/blob/main/src/templates/samples/config/" target="_blank">configuration
-    examples</a> and <a href="https://github.com/simplicateca/craft-selectplus-field/tree/main" target="_blank">documentation
-    available on Github</a>.
-</p>
+{% js %}
+    new Craft.MetaSettingsField.ConfigToggle( "{{ craft.app.view.namespaceInputId('config-toggle') }}", "{{mode}}" )
+{% endjs %}
